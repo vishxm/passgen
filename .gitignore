@@ -2,3 +2,8 @@ node_modules/
 .DS_Store
 .playwright-mcp/
 *.log
+
+# A finished working log, not a deliverable. It has no forward-looking value to
+# anyone cloning the repo and would go stale the moment src/ changes. The two
+# rules and the open items in it are both in README.
+PLAN.md

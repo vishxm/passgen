@@ -1,10 +1,24 @@
 # Plan
 
-Remaining work on passgen, ordered by risk. Written 3 Oct 2026 against
-`dist/index.html` sha256 `d7766705` / source digest `937cb964`.
+Every item below is done. Written 3 Oct 2026 against `dist/index.html` sha256
+`d7766705` / source digest `937cb964`; the tree now sits at sha256
+`d4490aa0`, source digest `52ce7aa5`.
 
-`npm run check` is green: 94 tests, 17 verify checks. Nothing below is a known
-bug — this is coverage and verification debt, plus housekeeping.
+`npm run check` is green: **125 tests, 17 verify checks**, on Node 22.23.3 and
+24.14.1, and in CI on every push.
+
+Where the plan's own guesses turned out to be wrong, the finding is recorded
+rather than quietly dropped. There are four:
+
+1. `npm test` does **not** work on Node 18 or 20 — see item 7.
+2. `describeAlphabet` was already dead, but so was the idea that the remaining
+   dead symbols were only untested — see item 5.
+3. The print stylesheet had never been rendered and was **wrong**, not merely
+   unverified — see item 6.
+4. The Firefox `Storage.prototype` worry resolves, but only once you check that
+   the counter *can* move — see item 1.
+
+---
 
 ## Read this first
 
@@ -20,163 +34,184 @@ Two rules that keep biting, both learned the hard way in the last round.
    open the page in a browser, or you will debug a build that no longer matches
    the source. This is exactly how a stale `dist/` reached you once already.
 
+   CI now enforces the second rule as well: `.github/workflows/check.yml` runs
+   `npm run check` and then `git diff --exit-code -- dist/`.
+
 ---
 
 ## Tier 1 — the only tier that could make a claim on screen untrue
 
-### 1. Verify Firefox and Safari
+### 1. Verify Firefox and Safari — done
 
-Everything confirmed so far is headless Chromium. The page makes absolute claims
-("no cookies, no storage, no requests"), and one code comment reasons explicitly
-about a browser I have never run it in — `src/lib/integrity.js:153`, *"Firefox may
-hand back a fresh wrapper on each `window.localStorage` access"*. If that patch
-does not hold, the storage counter under-reports, which is worse than not
-counting: the panel would be lying by omission.
+Everything previously confirmed was headless Chromium. The page makes absolute
+claims ("no cookies, no storage, no requests"), and one code comment reasons
+explicitly about a browser that had never been run in it —
+`src/lib/integrity.js:153`, *"Firefox may hand back a fresh wrapper on each
+`window.localStorage` access"*.
 
-Do this per engine, from **both** `file://` and `http://localhost:8080`:
+Checked on 3 Oct 2026 with Playwright, from **both** `file://` and
+`http://localhost:8080`, on Chromium 153.0.8010.12, Firefox 155.0 and WebKit
+26.6. Results are in README's *Which browsers this has actually been run in*.
 
-- [ ] page loads and generates; no console errors
-- [ ] **storage writes stays 0** at load, after 20 regenerates, after switching
+- [x] page loads and generates; no console errors of its own
+- [x] **storage writes stays 0** at load, after 20 regenerates, after switching
       all four modes, after running the self-test
-- [ ] press **Copy** 4× → *clipboard writes* = 4, *storage writes* still 0, and
+- [x] press **Copy** 4× → *clipboard writes* = 4, *storage writes* still 0, and
       `localStorage.length === 0`, `sessionStorage.length === 0`,
       `document.cookie === ''`
-- [ ] **Run self-test** → 9 of 9 pass
-- [ ] note what *Blocked by policy* reads. Chromium gives 5 of 6, because a
-      refused `wss://` raises no `securitypolicyviolation`. Firefox and Safari may
-      differ; if they do, check the sentence under the counters still reads
-      correctly rather than asserting an exact number
-- [ ] clipboard actually works (Safari gates this on a user gesture and has its
-      own `file://` behaviour)
-- [ ] tamper test: change one byte of the inline script, reload, confirm the
-      browser refuses to run it. This is the hash lock and it must hold per engine
-- [ ] narrow viewport (390px) — no horizontal overflow, the new
-      *Running on origin* row wraps rather than pushing the layout
+- [x] **Run self-test** → 9 of 9 on every engine
+- [x] **Blocked by policy** reads 5 of 6 on all three engines. Identical across
+      them, so the sentence under the counters is correct as written and needs no
+      per-engine wording. (A refused `wss://` raises no `securitypolicyviolation`
+      in any of them.)
+- [x] clipboard actually works
+- [x] tamper test: one byte added to the inline script, reload, all three engines
+      refuse to execute it, each with its own wording
+- [x] narrow viewport (390px) — no horizontal overflow, the *Running on origin*
+      row wraps rather than pushing the layout
 
-**Done when** the results are written into README's *Limits, stated plainly*
-section, including anything that turned out to be broken.
+**The finding that mattered.** "Storage writes stayed 0" is also what a wrapper
+that silently failed to install would read, so it proves nothing on its own.
+Driving real writes from inside each page moves the counter 0 → 6, split across
+the four channels, in all three engines; a refused `fetch` outside the self-test
+moves *network calls* 0 → 1. The Firefox wrapper concern **does not apply** — the
+patch is on `Storage.prototype` and re-reading `window.localStorage` returns the
+same wrapped `setItem` everywhere.
 
-### 2. Tests for `src/app.js`
+**What is still not verified:** Safari itself. The WebKit build Playwright ships
+is not `Safari.app`, and Safari gates the clipboard on a user gesture and has its
+own `file://` behaviour. README says so rather than implying coverage.
 
-The DOM stub made `integrity.js` testable, but `app.js` has 12 functions with
-real logic and nothing exercises them. The build tests only prove the ids it
-reaches for *exist* — not that the logic is right.
+### 2. Tests for `src/app.js` — done
 
-| function | line | what breaks silently |
-| --- | --- | --- |
-| `applyLengthCeiling` | 679 | the "no repeats caps length at alphabet size" rule |
-| `relaxLengthCeilings` | 711 | the workaround for a preset inheriting the previous preset's ceiling |
-| `applyPreset` | 761 | mode switch plus 9 control values |
-| `compareDigest` | 617 | the match / no-match message |
-| `setMode` | 660 | panel visibility and `aria-checked` |
-| `legacyCopy` | 328 | the `execCommand` clipboard fallback |
+The DOM stub made `integrity.js` testable, but `app.js` had 12 functions with real
+logic and nothing exercised them.
 
-Recommended approach — **do not** hand-roll a DOM for all of this. The
-length-ceiling and preset logic is really pure functions over a control-state
-object; it only touches the DOM to read and write values.
+- [x] extracted the pure part into `src/lib/controls.js`: the ceiling
+      calculation, the preset table, the mode→panel mapping and the digest
+      verdict, all `(options) -> result` with no DOM
+- [x] added `src/lib/controls.js` to `SCRIPTS` in `tools/build.mjs` (before
+      `app.js`) and to `loadCore()` / a new `loadControls()` in
+      `test/helpers.mjs`
+- [x] `test/controls.test.mjs`, 29 tests: presets produce their documented
+      values; a stale ceiling cannot survive a preset switch; the three mode
+      predicates; the digest verdict
+- [x] `app.js` is now wiring only. `applyLengthCeiling`, `relaxLengthCeilings`,
+      `applyPreset`, `setMode` and `compareDigest` all read from `controls.js`
+- [x] `legacyCopy` is left alone. It is a DOM operation with no pure half: the
+      interesting part is that it never throws, and that is a browser fact, not a
+      unit-testable one. It is exercised for real in item 1's four-Copy run, where
+      Chromium over `file://` is the case that actually takes this path
+- [x] every error string in `generate()` has a reachable input —
+      `REACHABLE_ERRORS` in `test/generators.test.mjs` pairs each message with the
+      input that produces it. One of them needed help to reach: *"These settings
+      leave too few valid passwords"* fires at well under 1% per attempt, so the
+      test drives it with a pinned `crypto` (see `constantCrypto()` in
+      `test/helpers.mjs`) rather than leaving a flaky test in the suite
+- [x] the painting functions (`paintSecret`, `paintMeter`, `paintChannels`,
+      `paintPolicy`) stay covered by the build tests and by hand, as planned
 
-- [ ] extract the pure part into a new `src/lib/controls.js`: the ceiling
-      calculation, the preset table, and the mode→panel mapping, all as
-      `(options) -> result` with no DOM
-- [ ] add `src/lib/controls.js` to `SCRIPTS` in `tools/build.mjs` (before
-      `app.js`) and to `loadCore()` in `test/helpers.mjs`
-- [ ] test it there: presets produce their documented values; a stale ceiling
-      cannot survive a preset switch; every error string in `generate()` has a
-      reachable input
-- [ ] leave the painting functions (`paintSecret`, `paintMeter`, `paintChannels`,
-      `paintPolicy`) covered only by the build tests and by hand — they are
-      mechanical, and a DOM stub that can satisfy them is not worth maintaining
-      given the no-dependencies rule
+### 3. Version control and CI — done
 
-### 3. Version control and CI
-
-Nothing runs `npm run check` unless a human remembers. The staleness gate stops
-a stale `dist/` from being *verified*; nothing stops a broken `dist/` reaching
-someone who opens the file.
-
-- [ ] `git init`, then commit. `.gitignore` already covers `node_modules/`,
+- [x] `git init` and commit
+- [x] `dist/` committed, plus `.gitignore` already covering `node_modules/`,
       `.DS_Store`, `.playwright-mcp/`, `*.log`
-- [ ] commit `dist/` — it is the shippable artifact, and the README tells people
-      to verify its sha256, which is meaningless without history
-- [ ] add `.github/workflows/check.yml`: `npm run check` on Node 20 and 24
-- [ ] decide whether the repository is public (see Tier 2, item 4 — public needs
-      a licence first)
+- [x] `.github/workflows/check.yml`: `npm run check` on Node 22 and 24, then
+      `git diff --exit-code -- dist/`, and it fails if a `package-lock.json`
+      ever appears
+- [x] repository is public: <https://github.com/vishxm/passgen>, MIT (item 4).
+      The first push is green on both Node versions.
 
 ---
 
 ## Tier 2 — quick wins
 
-### 4. Add a LICENSE
+### 4. Add a LICENSE — done
 
-There is no licence file. The EFF wordlist is CC BY 3.0 and is credited in-page
-(`#wordlist-credit`) and in README's *Credits*; the code itself is unlicensed.
-Pick one, write it, and keep the wordlist attribution where it is.
+MIT. `LICENSE` carries the word-list carve-out in plain words: the EFF list stays
+CC BY 3.0, its attribution stays in `#wordlist-credit` and README's *Credits*, and
+the MIT terms do not extend to it.
 
-### 5. Delete the dead code
+### 5. Delete the dead code — done
 
-Verified by grep: defined and exported, called by nothing.
-
-| symbol | file | note |
+| symbol | file | action |
 | --- | --- | --- |
-| `describeAlphabet` | `src/lib/generators.js:348` | never called; `app.js` has its own `alphabetSummary` |
-| `randomBytes` | `src/lib/random.js:15` | called by nothing, not even a test |
-| `shuffle` | `src/lib/random.js:56` | tested, no src caller — `sampleDistinct` has its own partial Fisher-Yates |
-| `bitsForPin` | `src/lib/entropy.js:132` | tested, but `app.js` routes PINs through `bitsForClasses` with no classes |
-| `formatDuration` | `src/lib/entropy.js:190` | tested, but `crackTimeRows` calls `formatDurationFromLog10` directly |
-| `PG.app` | `src/app.js:932` | nothing consumes it |
+| `describeAlphabet` | `src/lib/generators.js:348` | deleted, never called |
+| `randomBytes` | `src/lib/random.js:15` | deleted, never called |
+| `shuffle` | `src/lib/random.js:56` | deleted, and **so were its two tests** |
+| `bitsForPin` | `src/lib/entropy.js:132` | deleted, and its two tests |
+| `formatDuration` | `src/lib/entropy.js:190` | deleted, and its test |
+| `PG.app` | `src/app.js:932` | deleted, nothing consumed it |
 
-Note the three that are *tested*: deleting them means deleting the tests too. For
-`bitsForPin` specifically, `test/generators.test.mjs:274` uses it to re-assert
-`6 * log2(10)` — which `bitsForClasses` already covers via the `k === 0` branch,
-so that assertion is redundant either way. This is an app, not a library; lean
-towards deleting. Keep `PG.app` only if you intend to drive it from a future
-browser test.
+**The plan's note about `shuffle` was incomplete.** Deleting it does not leave
+`sampleDistinct` untested — a full-length `sampleDistinct` *is* a Fisher-Yates
+shuffle, since partial Fisher-Yates degenerates to the full one at `length === n`.
+So the multiset-preservation and "it actually reorders" assertions moved onto
+`sampleDistinct(input, input.length)` instead of being deleted, which keeps the
+property covered against the function the page actually draws from.
 
-### 6. Exercise the print path
+`bitsForPin` and `formatDuration` were the same story. The redundant `6·log2(10)`
+assertion is now made against `bitsForClasses(result.spec)` — the route `app.js`
+actually takes — and the duration-scale test goes through
+`formatDurationFromLog10(Math.log10(seconds))`, which is what
+`crackTimeRows` calls. Both now test the real path.
 
-There is a thorough `@media print` block (`src/styles.css:1100` onward — hides
-everything but the password, forces black on white) and a Print button that has
-never been rendered.
+`PG.app` went because item 1 drives the page through Playwright rather than
+through a JavaScript entry point, so nothing wanted it.
 
-- [ ] `page.emulateMedia({ media: 'print' })` and screenshot
-- [ ] check the password is legible at length 4 and at length 128, and in
+### 6. Exercise the print path — done, and it was broken
+
+- [x] `emulateMedia({ media: 'print' })` and screenshot, on all three engines,
+      from `file://`
+- [x] legible at length 4, 20 and 128 (128 wraps to three lines) and in
       passphrase mode
-- [ ] check nothing else prints: no masthead, no settings, no receipts
+- [x] nothing else prints: masthead, settings, receipts, colophon, skip link,
+      strength bar and crack-time table are all `display: none`
+
+**Two real defects, both fixed in `@media print`:**
+
+1. **The button row printed.** Regenerate / Copy / Hide / Print came out with
+   their screen fills. Paper cannot be clicked, so this wasted toner and printed
+   five labels that do nothing. `.panel-actions` is now hidden.
+2. **The accent teal printed on white.** `#secret-status`, the strength label and
+   the bits figure are roughly a 2:1 contrast ratio on paper — legible on a
+   backlit screen, not on paper. All three are forced to `#000`.
+
+Found only by rendering it. The stylesheet had looked correct for a year.
 
 ---
 
 ## Tier 3 — documentation and noise
 
-### 7. Two claims in README that will drift
+### 7. Two claims in README that will drift — done
 
-- [ ] `npm test # 94 tests` — a hardcoded count that is wrong the moment a test
-      is added. Either drop the number or make `npm test` print it where README
-      cannot go stale.
-- [ ] `Requires Node 18+ for the tooling` — unverified. This machine is on Node
-      24, and `node --test "test/**/*.test.mjs"` relies on the runner resolving
-      a glob argument, which is not guaranteed that old. Either test it on 18 or
-      raise the floor to 20 and say why.
+- [x] `npm test # 94 tests` — the number is gone. `node --test` prints the count
+      when it finishes, which is where a count that cannot go stale belongs.
+      *Seventeen checks* was cut for the same reason.
+- [x] `Requires Node 18+` — **was wrong.** `npm test` is
+      `node --test "test/**/*.test.mjs"`, which asks the runner to resolve a
+      glob. Verified on four versions:
 
-### 8. Silence the false alarm in `npm run check`
+  | Node | `npm run check` |
+  | --- | --- |
+  | 18.20.8 | `Could not find 'test/**/*.test.mjs'` — runs nothing |
+  | 20.20.2 | `Could not find 'test/**/*.test.mjs'` — runs nothing |
+  | 22.23.3 | green |
+  | 24.14.1 | green |
 
-A clean `npm run check` prints `build failed: dist/index.html is stale` twice.
-It is harmless — those are captured failures from the two tests that deliberately
-break `dist/` on purpose — but it reads like a real failure and trains you to
-ignore red text.
+  Passing a directory is not a fix: Node 22 reads `test/` as a single file and
+  fails, Node 20 reads it as a recursive search, Node 18 runs `dom-stub.mjs` and
+  `helpers.mjs` as if they were suites. So the floor is raised to **22**, README
+  says exactly why, and CI tests 22 and 24.
 
-Cause: Node's `execFileSync` pipes a child's stderr to the parent's stderr unless
-`stdio` is given explicitly, which is what `run()` in `test/build.test.mjs` omits.
-Confirmed on this machine:
+### 8. Silence the false alarm in `npm run check` — done
 
-```
-$ node -e "execFileSync(process.execPath,['-e','console.error(\"X\")'])"
-X
-```
-
-- [ ] pass `stdio: ['ignore', 'pipe', 'pipe']` in `run()` and
-      `runExpectingFailure()` in `test/build.test.mjs`
-- [ ] confirm a clean `npm run check` prints no `build failed` line
-- [ ] confirm `test/build.test.mjs` still fails when it should
+- [x] `stdio: ['ignore', 'pipe', 'pipe']` in `run()` in `test/build.test.mjs`,
+      which `runExpectingFailure()` already went through
+- [x] a clean `npm run check` prints no `build failed` line
+- [x] `test/build.test.mjs` still fails when it should — confirmed by tampering
+      with `dist/index.html` and watching it go red (11 pass, 1 fail), then
+      restoring it
 
 ---
 

@@ -1,0 +1,51 @@
+# Nothing runs `npm run check` unless a human remembers, and the staleness gate
+# only stops a stale dist/ from being *verified* -- nothing stops a broken dist/
+# from reaching someone who opens the file. This is the thing that closes that
+# gap: every commit gets the whole pipeline, from a clean checkout.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22 is the floor, and the reason is specific rather than conservative:
+        # `node --test "test/**/*.test.mjs"` hands the runner a glob for it to
+        # resolve, and Node 18 and 20 both answer "Could not find
+        # test/**/*.test.mjs" and run nothing at all. Directory arguments are no
+        # better -- Node 22 reads `test/` as a single file. 24 is what the
+        # project is developed on.
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Confirm there are no dependencies to install
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json appeared; the project is meant to have none" >&2
+            exit 1
+          fi
+
+      # build + test + verify. `npm run check` refuses to run against a stale
+      # dist/, and the checkout contains the committed one, so this also proves
+      # the artifact in the repository matches the source beside it.
+      - name: Build, test, verify
+        run: npm run check
+
+      - name: The committed artifact is the one we just built
+        run: git diff --exit-code -- dist/

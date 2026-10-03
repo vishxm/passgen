@@ -1,0 +1,18 @@
+{
+  "name": "local-password-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A password generator that runs entirely in the browser. No storage, no network, no dependencies.",
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "verify": "node tools/verify.mjs",
+    "pretest": "node tools/build.mjs --check",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "check": "node tools/build.mjs && node --test \"test/**/*.test.mjs\" && node tools/verify.mjs",
+    "wordlist": "node tools/make-wordlist.mjs",
+    "serve": "python3 -m http.server 8080"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

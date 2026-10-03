@@ -4,6 +4,9 @@
   "private": true,
   "description": "A password generator that runs entirely in the browser. No storage, no network, no dependencies.",
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "build": "node tools/build.mjs",
     "verify": "node tools/verify.mjs",

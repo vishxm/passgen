@@ -51,6 +51,70 @@ stale, run `npm run build`.
 
 ---
 
+## Deploying
+
+The output is one static file, so there is nothing to install and no server to
+run. `vercel.json` says so in the four fields a host needs:
+
+| field | value | why |
+| --- | --- | --- |
+| `framework` | `null` | there is no framework, and none should be guessed at |
+| `installCommand` | `echo 'no dependencies'` | nothing to install; keeps a lockfile from appearing |
+| `buildCommand` | `npm run build` | rebuilds `dist/` from `src/` on the host |
+| `outputDirectory` | `dist` | the two files that get served |
+
+The build runs on Vercel rather than shipping the committed `dist/`, so the bytes
+that get deployed are provably built from the source in the same commit. CI
+already proves the committed `dist/` matches `src/`; this proves the deployed one
+does too.
+
+`package.json` also pins `"engines": { "node": "24.x" }`, the version the CI
+matrix treats as current. Without it the host picks a Node version by its own
+defaults, and a default that moved below 22 would run the tooling on a floor it
+does not support.
+
+Push, then import the repository at **Add New &rarr; Project** in the Vercel
+dashboard, and check that the four fields above came back filled in rather than
+blank. From a terminal, `npx vercel` deploys a preview and `npx vercel --prod` a
+production one.
+
+Two things are worth knowing about what lands in public:
+
+- `dist/index.html.sha256` is inside the output directory, so it is served
+  alongside the page. That is deliberate &mdash; it is the same checksum
+  `npm run verify` checks, and anyone can confirm which build is live.
+- The page is served over HTTPS, which is a secure context. The clipboard buttons
+  work there, as they do over `file://`.
+
+To confirm a deployment is the build you meant:
+
+```sh
+curl -sI https://<your-domain>/                    # the headers below
+curl -s https://<your-domain>/index.html.sha256    # must match your local file
+```
+
+### What the host sends, and why it is not more
+
+`vercel.json` sets five headers. The load-bearing one is
+`Content-Security-Policy: frame-ancestors 'none'` &mdash; and it is alone on
+purpose. A browser enforces a `<meta>` policy and a header policy
+independently, so the effective policy is their intersection: the hash-locked
+policy from the build, plus framing denial. Copying the full policy into the
+header would duplicate hashes that `tools/build.mjs` computes per build, which
+would be stale the next time anyone edited `src/`, and a stale
+`script-src` hash locks the page out of itself.
+
+`X-Frame-Options: DENY` covers browsers too old for CSP. The other three
+(`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) are
+defence in depth for a page that already refuses to talk to anything.
+
+One thing a host cannot add: the browser matrix below was run against
+`file://` and `http://localhost:8080`. Run the self-test on the deployed URL
+before trusting it, and treat a result there as a new data point rather than
+another tick in that table.
+
+---
+
 ## The four modes
 
 | Mode | What it makes | Options |
@@ -211,6 +275,7 @@ test/
   dom-stub.mjs                  enough browser to load integrity.js in Node
   build.test.mjs                the built file: reproducible, self-contained
 dist/                 the shippable file, plus its SHA-256
+vercel.json           deploy settings and the headers a host must send
 .github/workflows/    `npm run check` on Node 22 and 24, on every push
 LICENSE               MIT, for this project's own code
 ```
@@ -261,8 +326,9 @@ script. `node --test` loads them by lending them a `window`.
   clipboard manager that keeps its own history. Nothing rendered on a screen is
   private from the machine rendering it.
 - `frame-ancestors` cannot be expressed in a `<meta>` policy; browsers ignore it
-  there. If you host this file, add `frame-ancestors 'none'` as a real HTTP
-  header.
+  there, so it is the one directive that can only arrive as a real header.
+  `vercel.json` sends it. Hosting this file anywhere else means sending it
+  yourself, or the page can be framed.
 - The clipboard buttons need a secure context. `file://` counts as one, so they
   work; over plain `http://` on a remote host, browsers will refuse and the page
   says so instead of failing silently.

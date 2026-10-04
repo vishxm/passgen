@@ -287,18 +287,23 @@
 
       var label = document.createElement('td');
       label.className = 'c-label';
-      label.textContent = row.label;
 
-      var detail = document.createElement('td');
+      var name = document.createElement('span');
+      name.className = 'c-name';
+      name.textContent = row.label;
+
+      var detail = document.createElement('span');
       detail.className = 'c-detail';
       detail.textContent = row.detail;
+
+      label.appendChild(name);
+      label.appendChild(detail);
 
       var time = document.createElement('td');
       time.className = 'c-time';
       time.textContent = row.seconds;
 
       tr.appendChild(label);
-      tr.appendChild(detail);
       tr.appendChild(time);
       body.appendChild(tr);
     });

@@ -255,9 +255,16 @@ main {
  * column takes whatever is left. table-layout: fixed is what used to clip them:
  * with three columns and no widths it handed out equal shares, and a nowrap
  * figure running past the right edge of the last one was simply cut off.
+ *
+ * The width is auto, not 100%, and that is load-bearing. The disclosure gives
+ * every child a 12px gutter, and a percentage width resolves against the
+ * content box, which does not know about the margins -- so width: 100% plus the
+ * gutter overhangs the block by 12px on the right and the right-aligned figures
+ * are what you see poking out of it. auto lets the table take the space the
+ * margins leave it, which is the same width the sibling blocks get.
  */
 .crack {
-  width: 100%;
+  width: auto;
   border-collapse: collapse;
 }
 

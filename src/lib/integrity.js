@@ -540,7 +540,6 @@
   };
 
   PG.integrity = {
-    PROBE_URL: PROBE_URL,
     state: state,
     init: init,
     snapshot: snapshot,

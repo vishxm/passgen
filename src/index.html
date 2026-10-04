@@ -17,7 +17,7 @@
 <!-- An empty data: icon, so the browser never asks anyone for a favicon. The
      policy allows data: for images, and nothing else, purely so this works. -->
 <link rel="icon" href="data:,">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
 <meta name="description" content="A password generator that runs entirely in your browser. Nothing is stored, nothing is sent, and the browser itself blocks all network access.">
 <meta name="robots" content="noindex">
 <title>passgen &middot; a password generator that stays on your machine</title>
@@ -29,65 +29,19 @@
 <header class="masthead">
   <div class="brand">
     <span class="brand-mark" aria-hidden="true">#</span>
-    <div class="brand-text">
-      <h1>passgen</h1>
-      <p>A password generator that runs in this tab and nowhere else.</p>
-    </div>
+    <h1>passgen</h1>
   </div>
-  <ul class="badges" aria-label="Live privacy counters">
-    <li class="badge" id="badge-network"><span class="badge-value">0</span> network calls</li>
-    <li class="badge" id="badge-storage"><span class="badge-value">0</span> storage writes</li>
-  </ul>
 </header>
 
+<!--
+  One card, in causal order: what kind of thing, the thing itself, what it is,
+  what it cost you, what to do with it, how long it is, and finally the
+  everything-else behind one disclosure. The plate and its own controls share a
+  card so there is no gutter and no other panel between a slider and the number
+  it changes.
+-->
 <main>
-  <section class="panel panel-secret" aria-labelledby="secret-heading">
-    <div class="panel-head">
-      <h2 id="secret-heading">Your <span id="secret-kind">password</span></h2>
-      <div class="panel-actions">
-        <button type="button" class="btn btn-primary" id="btn-regenerate">Regenerate<kbd>G</kbd></button>
-        <button type="button" class="btn" id="btn-copy">Copy</button>
-        <button type="button" class="btn btn-quiet" id="btn-clear-clip" hidden>Clear clip</button>
-        <button type="button" class="btn btn-quiet" id="btn-reveal" aria-pressed="false">Hide</button>
-        <button type="button" class="btn btn-quiet" id="btn-print">Print</button>
-      </div>
-    </div>
-
-    <output id="secret" class="secret" for="btn-regenerate" aria-live="polite" aria-atomic="true" aria-label="Generated password"></output>
-
-    <p class="notice notice-error" id="secret-error" role="alert" hidden></p>
-    <p class="notice" id="secret-status" role="status"></p>
-
-    <div class="meter">
-      <div class="meter-head">
-        <span class="meter-verdict" id="strength-label">&mdash;</span>
-        <span class="meter-bits" id="bits-label">&mdash;</span>
-      </div>
-      <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
-
-      <dl class="stats">
-        <div class="stat"><dt>entropy</dt><dd id="stat-bits">&mdash;</dd></div>
-        <div class="stat"><dt>possibilities</dt><dd id="stat-count">&mdash;</dd></div>
-        <div class="stat"><dt>per character</dt><dd id="stat-per-char">&mdash;</dd></div>
-        <div class="stat"><dt>alphabet</dt><dd id="stat-alphabet">&mdash;</dd></div>
-      </dl>
-
-      <table class="crack">
-        <caption>
-          Time to crack, if an attacker already holds the hash and is allowed to guess
-          at a fixed rate. Guesses are independent, so a human who reuses a pattern
-          beats these numbers.
-        </caption>
-        <tbody id="crack-rows"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="panel" aria-labelledby="settings-heading">
-    <div class="panel-head">
-      <h2 id="settings-heading">Settings</h2>
-      <span class="panel-note">not remembered &mdash; reloading resets everything</span>
-    </div>
+  <section class="deck" aria-label="Generator">
 
     <div class="modes" role="radiogroup" aria-label="What kind of secret to generate">
       <button type="button" class="mode" role="radio" aria-checked="true" data-mode="password">Password</button>
@@ -97,152 +51,200 @@
     </div>
 
     <div class="presets">
-      <span class="presets-label">Presets</span>
       <button type="button" class="chip" data-preset="strong">Strong</button>
       <button type="button" class="chip" data-preset="memorable">Memorable</button>
       <button type="button" class="chip" data-preset="maximum">Maximum</button>
       <button type="button" class="chip" data-preset="pin8">8-digit PIN</button>
     </div>
 
-    <!-- ------------------------------------------------ password -->
-    <div class="mode-panel" data-for="password">
-      <div class="field">
-        <label for="length">Length</label>
-        <div class="field-row">
-          <input type="range" id="length" min="4" max="128" step="1" value="20">
-          <input type="number" id="length-number" min="4" max="128" step="1" value="20" aria-label="Length, in characters">
-        </div>
+    <output id="secret" class="secret" for="btn-regenerate" aria-live="polite" aria-atomic="true" aria-label="Generated password"></output>
+
+    <p class="notice notice-error" id="secret-error" role="alert" hidden></p>
+
+    <!-- The hinge. Directly under the plate, and permanent: it answers "what did
+         my slider just do?" without being overwritten by the next action. -->
+    <p class="hinge" id="secret-status" role="status"></p>
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="btn-regenerate">Regenerate<kbd>G</kbd></button>
+      <button type="button" class="btn" id="btn-copy">Copy</button>
+      <button type="button" class="btn btn-quiet" id="btn-clear-clip" hidden>Clear clip</button>
+    </div>
+
+    <!-- Transient, and separate from the hinge on purpose. It fades rather than
+         being removed, so the live region stays registered with the screen
+         reader. -->
+    <p class="flash" id="secret-flash" role="status"></p>
+
+    <div class="verdict">
+      <div class="meter-head">
+        <span class="meter-verdict" id="strength-label">&mdash;</span>
+        <span class="meter-bits" id="bits-label">&mdash;</span>
       </div>
+      <div class="meter-scale" aria-hidden="true"></div>
+      <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+    </div>
 
-      <fieldset class="toggles">
-        <legend>Character types</legend>
-        <label class="toggle">
-          <input type="checkbox" id="use-lower" checked>
-          <span>Lowercase<small>a&ndash;z &middot; 26</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="use-upper" checked>
-          <span>Uppercase<small>A&ndash;Z &middot; 26</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="use-digits" checked>
-          <span>Digits<small>0&ndash;9 &middot; 10</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="use-symbols" checked>
-          <span>Symbols<small id="symbol-count">&middot;</small></span>
-        </label>
-      </fieldset>
-
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="require-each" checked>
-          <span>One of each type<small>guaranteed, not probable</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="no-repeat">
-          <span>No repeated characters<small>caps length at the alphabet size</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="exclude-ambiguous">
-          <span>Drop look-alikes<small id="ambiguous-list">&mdash;</small></span>
-        </label>
-      </fieldset>
-
-      <div class="field">
-        <label for="exclude">Also exclude these characters</label>
-        <input type="text" id="exclude" class="text-input" placeholder="e.g. &quot;' \  quotes and spaces" autocomplete="off" spellcheck="false">
-        <p class="hint" id="exclude-hint">Anything you type here is removed from every character type.</p>
-      </div>
-
-      <details class="advanced">
-        <summary>Fine-tune the symbol set</summary>
+    <!-- The one control worth always having on screen. Four pairs, one visible,
+         because which one is right is a fact about the mode and not a preference.
+         They carry .mode-panel so setMode() already knows how to switch them. -->
+    <div class="always-on">
+      <div class="mode-panel" data-for="password">
         <div class="field">
-          <label for="symbols-override">Use these symbols instead</label>
-          <input type="text" id="symbols-override" class="text-input" autocomplete="off" spellcheck="false">
-          <p class="hint">Leave empty to use the built-in set of 28. It contains no quotes, backslashes, backticks or spaces, so the result pastes cleanly into form fields and spreadsheets. Shells will still reinterpret characters like <code>$</code> and <code>&amp;</code>, so paste into a password manager rather than a command line.</p>
+          <label for="length">Length</label>
+          <div class="field-row">
+            <input type="range" id="length" min="4" max="128" step="1" value="20">
+            <input type="number" id="length-number" min="4" max="128" step="1" value="20" aria-label="Length, in characters">
+          </div>
         </div>
-      </details>
-    </div>
-
-    <!-- ------------------------------------------------ passphrase -->
-    <div class="mode-panel" data-for="passphrase" hidden>
-      <div class="field">
-        <label for="words">Words</label>
-        <div class="field-row">
-          <input type="range" id="words" min="3" max="12" step="1" value="6">
-          <input type="number" id="words-number" min="3" max="12" step="1" value="6" aria-label="Number of words">
-        </div>
-        <p class="hint" id="wordlist-note">&mdash;</p>
       </div>
 
-      <div class="field">
-        <label for="separator">Separator</label>
-        <select id="separator" class="text-input"></select>
+      <div class="mode-panel" data-for="passphrase" hidden>
+        <div class="field">
+          <label for="words">Words</label>
+          <div class="field-row">
+            <input type="range" id="words" min="3" max="12" step="1" value="6">
+            <input type="number" id="words-number" min="3" max="12" step="1" value="6" aria-label="Number of words">
+          </div>
+        </div>
       </div>
 
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="capitalize">
-          <span>Random capitalisation<small>a fair coin per word, so +1 bit each</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="append-digit">
-          <span>Append a random digit<small>+3.3 bits</small></span>
-        </label>
-      </fieldset>
+      <div class="mode-panel" data-for="pin" hidden>
+        <div class="field">
+          <label for="pin-length">Digits</label>
+          <div class="field-row">
+            <input type="range" id="pin-length" min="4" max="12" step="1" value="6">
+            <input type="number" id="pin-length-number" min="4" max="12" step="1" value="6" aria-label="Number of digits">
+          </div>
+        </div>
+      </div>
+
+      <div class="mode-panel" data-for="custom" hidden>
+        <div class="field">
+          <label for="custom-length">Length</label>
+          <div class="field-row">
+            <input type="range" id="custom-length" min="1" max="128" step="1" value="20">
+            <input type="number" id="custom-length-number" min="1" max="128" step="1" value="20" aria-label="Length, in characters">
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- ------------------------------------------------ pin -->
-    <div class="mode-panel" data-for="pin" hidden>
-      <div class="field">
-        <label for="pin-length">Digits</label>
-        <div class="field-row">
-          <input type="range" id="pin-length" min="4" max="12" step="1" value="6">
-          <input type="number" id="pin-length-number" min="4" max="12" step="1" value="6" aria-label="Number of digits">
+    <details class="adjust">
+      <summary>Adjust</summary>
+
+      <!-- ------------------------------------------------ password -->
+      <div class="mode-panel" data-for="password">
+        <fieldset class="toggles">
+          <legend>Character types</legend>
+          <label class="toggle">
+            <input type="checkbox" id="use-lower" checked>
+            <span>Lowercase</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="use-upper" checked>
+            <span>Uppercase</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="use-digits" checked>
+            <span>Digits</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="use-symbols" checked>
+            <span>Symbols</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="require-each" checked>
+            <span>One of each type<small class="keep">guaranteed, not probable</small></span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="no-repeat">
+            <span>No repeated characters<small class="keep">caps length at the alphabet size</small></span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="exclude-ambiguous">
+            <span>Drop look-alikes<small class="keep" id="ambiguous-list">&mdash;</small></span>
+          </label>
+        </fieldset>
+
+        <div class="field">
+          <label for="exclude">Also exclude these characters</label>
+          <input type="text" id="exclude" class="text-input" placeholder="e.g. &quot;' \  quotes and spaces" autocomplete="off" spellcheck="false">
         </div>
+
+        <details class="advanced">
+          <summary>Fine-tune the symbol set</summary>
+          <div class="field">
+            <label for="symbols-override">Use these symbols instead</label>
+            <input type="text" id="symbols-override" class="text-input" autocomplete="off" spellcheck="false">
+            <p class="hint">Empty uses the built-in 28.</p>
+          </div>
+        </details>
+      </div>
+
+      <!-- ------------------------------------------------ passphrase -->
+      <div class="mode-panel" data-for="passphrase" hidden>
+        <div class="field">
+          <label for="separator">Separator</label>
+          <select id="separator" class="text-input"></select>
+        </div>
+
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="capitalize">
+            <span>Random capitalisation</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="append-digit">
+            <span>Append a random digit</span>
+          </label>
+        </fieldset>
+      </div>
+
+      <!-- ------------------------------------------------ pin -->
+      <div class="mode-panel" data-for="pin" hidden>
         <p class="hint">A 6-digit PIN has about 20 bits. Fine for a phone keypad with a lockout; not fine for anything else.</p>
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="pin-no-repeat">
+            <span>No repeated digits</span>
+          </label>
+        </fieldset>
       </div>
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="pin-no-repeat">
-          <span>No repeated digits</span>
-        </label>
-      </fieldset>
-    </div>
 
-    <!-- ------------------------------------------------ custom -->
-    <div class="mode-panel" data-for="custom" hidden>
-      <div class="field">
-        <label for="custom-alphabet">Characters to draw from</label>
-        <textarea id="custom-alphabet" class="text-input" rows="3" spellcheck="false" autocomplete="off" placeholder="Paste any characters you like, e.g. ABCDEFGHJKMNPQRSTUVWXYZ23456789"></textarea>
-        <p class="hint" id="custom-hint">Duplicates are removed automatically. Emoji and accents are counted as one character each.</p>
-      </div>
-      <div class="field">
-        <label for="custom-length">Length</label>
-        <div class="field-row">
-          <input type="range" id="custom-length" min="1" max="128" step="1" value="20">
-          <input type="number" id="custom-length-number" min="1" max="128" step="1" value="20" aria-label="Length, in characters">
+      <!-- ------------------------------------------------ custom -->
+      <div class="mode-panel" data-for="custom" hidden>
+        <div class="field">
+          <label for="custom-alphabet">Characters to draw from</label>
+          <textarea id="custom-alphabet" class="text-input" rows="3" spellcheck="false" autocomplete="off" placeholder="Paste any characters you like, e.g. ABCDEFGHJKMNPQRSTUVWXYZ23456789"></textarea>
+          <p class="hint" id="custom-hint">Emoji count as one character.</p>
         </div>
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="custom-no-repeat">
+            <span>No repeated characters</span>
+          </label>
+        </fieldset>
       </div>
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="custom-no-repeat">
-          <span>No repeated characters</span>
-        </label>
-      </fieldset>
-    </div>
+    </details>
   </section>
+</main>
 
-  <section class="panel" aria-labelledby="trust-heading">
-    <div class="panel-head">
-      <h2 id="trust-heading">Receipts</h2>
-      <span class="panel-note">live, not a promise</span>
-    </div>
+<footer class="footer">
+  <p class="strip">
+    <span class="strip-item" id="strip-network"><span class="strip-value">0</span> network calls</span>
+    <span class="strip-item" id="strip-storage"><span class="strip-value">0</span> storage writes</span>
+  </p>
+
+  <details class="disclosure">
+    <summary>Verify this page</summary>
 
     <p class="lede">
       This page is one HTML file with no dependencies. There is no server to send
@@ -266,6 +268,15 @@
       writes happen only when you press Copy, and are counted apart from storage
       writes so that pressing it can never look like saving something.
     </p>
+
+    <table class="crack">
+      <caption>
+        Time to crack, if an attacker already holds the hash and is allowed to guess
+        at a fixed rate. Guesses are independent, so a human who reuses a pattern
+        beats these numbers.
+      </caption>
+      <tbody id="crack-rows"></tbody>
+    </table>
 
     <details class="disclosure">
       <summary>Channels being watched</summary>
@@ -307,43 +318,35 @@
       </div>
       <p class="notice" id="digest-result" role="status"></p>
     </details>
-  </section>
-</main>
+  </details>
 
-<footer class="colophon">
-  <div class="colophon-grid">
-    <section>
-      <h2>What this is not</h2>
-      <p>
-        Not a password manager. It remembers nothing, on purpose: no history, no
-        favourites, no settings, nothing in localStorage, no cookies, no service
-        worker. Close the tab and the password is gone. Write it down, or put it
-        in a manager you trust.
-      </p>
-    </section>
-    <section>
-      <h2>What it cannot stop</h2>
-      <p>
-        A browser extension with page access, a compromised OS, a keylogger, a
-        shoulder-surfer, a screen recording, or a clipboard manager that keeps
-        what you copy. Nothing rendered on a screen is private from the machine
-        that renders it.
-      </p>
-    </section>
-    <section>
-      <h2>How to check us</h2>
-      <p>
-        Open the network tab and reload: zero requests. Open the application tab:
-        empty. Read the file &mdash; it is the program and its own source. Or run
-        <code>npm run verify</code> in a clone.
-      </p>
-    </section>
-  </div>
-  <p class="legal">
-    Passphrase mode uses <span id="wordlist-credit">the EFF Long Wordlist</span>.
-    Character sets are ASCII only. No analytics, no cookies, no fonts, no CDN, no
-    dependencies, no build step required to run this page.
-  </p>
+  <details class="disclosure">
+    <summary>What this is not</summary>
+
+    <p class="colophon">
+      Not a password manager. It remembers nothing, on purpose: no history, no
+      favourites, no settings, nothing in localStorage, no cookies, no service
+      worker. Close the tab and the password is gone. Write it down, or put it
+      in a manager you trust.
+    </p>
+    <p class="colophon">
+      What it cannot stop: a browser extension with page access, a compromised
+      OS, a keylogger, a shoulder-surfer, a screen recording, or a clipboard
+      manager that keeps what you copy. Nothing rendered on a screen is private
+      from the machine that renders it.
+    </p>
+    <p class="colophon">
+      How to check us: open the network tab and reload: zero requests. Open the
+      application tab: empty. Read the file &mdash; it is the program and its own
+      source. Or run <code>npm run verify</code> in a clone.
+    </p>
+
+    <p class="legal">
+      Passphrase mode uses <span id="wordlist-credit">the EFF Long Wordlist</span>.
+      Character sets are ASCII only. No analytics, no cookies, no fonts, no CDN, no
+      dependencies, no build step required to run this page.
+    </p>
+  </details>
 </footer>
 
 <noscript>

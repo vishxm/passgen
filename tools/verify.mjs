@@ -10,9 +10,9 @@
  *
  * It also re-checks the claims the page makes about itself: no Math.random, no
  * network calls outside the self-test, no absolute URLs, no inline handlers. And
- * it re-derives dist/index.html from src/ to catch the failure mode where the
- * source is fixed and the shipped file is not: every check below would still
- * pass, because they audit the file that is actually there.
+ * it re-derives the page from src/ to catch the failure mode where the source is
+ * fixed and the built file is not: every check below would still pass, because
+ * they audit the file that is actually there.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
@@ -21,8 +21,6 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const distFile = join(root, 'dist', 'index.html');
-const checksumFile = join(root, 'dist', 'index.html.sha256');
 
 const results = [];
 
@@ -68,16 +66,25 @@ function parsePolicy(html) {
   return { raw: match[1], directives };
 }
 
-// ---------------------------------------------------------------- run
+// ------------------------------------------------------------------- run
 
-check('dist/index.html exists', () => {
+/**
+ * The whole audit, run against the built page. Kept as a function rather than
+ * inlined so that the early return below is readable: if dist/ is missing there
+ * is nothing left to audit, and the report says so rather than throwing.
+ */
+function audit() {
+const distFile = join(root, 'dist', 'index.html');
+const checksumFile = distFile + '.sha256';
+const label = 'dist/index.html';
+
+check(label + ' exists', () => {
   assert(existsSync(distFile), 'run: npm run build');
   return 'found';
 });
 
 if (!existsSync(distFile)) {
-  report();
-  process.exit(1);
+  return report();
 }
 
 /**
@@ -86,14 +93,14 @@ if (!existsSync(distFile)) {
  * page you are looking at is not the page the source describes. This rebuilds
  * into memory and compares.
  */
-check('dist matches the current source', () => {
+check(label + ' matches the current source', () => {
   try {
     execFileSync(process.execPath, [join(root, 'tools', 'build.mjs'), '--check'], {
       cwd: root,
       encoding: 'utf8',
     });
   } catch (err) {
-    throw new Error('dist/index.html is stale -- run: npm run build');
+    throw new Error(label + ' is stale -- run: npm run build');
   }
   return 'rebuilt from src/ and byte-identical';
 });
@@ -166,10 +173,10 @@ check('stylesheet hash matches the policy', () => {
 });
 
 check('checksum file matches the file', () => {
-  assert(existsSync(checksumFile), 'dist/index.html.sha256 is missing');
+  assert(existsSync(checksumFile), label + '.sha256 is missing');
   const recorded = readFileSync(checksumFile, 'utf8').trim().split(/\s+/)[0];
   const actual = sha256(Buffer.from(html, 'utf8')).toString('hex');
-  assert(recorded === actual, 'dist/index.html has changed since it was built');
+  assert(recorded === actual, label + ' has changed since it was built');
   return actual.slice(0, 32) + '...';
 });
 
@@ -253,7 +260,23 @@ check('no absolute URLs in the page', () => {
   return 'the markup names no server';
 });
 
-report();
+check('the stylesheet fetches nothing', () => {
+  // Stricter than the build guard on purpose: the build fails on the source, and
+  // this fails on the bytes that shipped. A stray url() would degrade into a
+  // refused request and a console line nobody reads, rather than into a build
+  // failure anyone sees.
+  const offenders = [];
+  if (/@font-face/i.test(styleText)) offenders.push('@font-face, but font-src is \'none\'');
+  if (/@import/i.test(styleText)) offenders.push('@import');
+  if (/url\(/i.test(styleText)) offenders.push('url()');
+  assert(offenders.length === 0, 'found: ' + offenders.join(', '));
+  return 'no faces, no imports, no url() of any kind';
+});
+
+return report();
+}
+
+// ---------------------------------------------------------------- report
 
 function report() {
   const failed = results.filter((r) => !r.pass);
@@ -267,7 +290,12 @@ function report() {
   console.log('');
   if (failed.length) {
     console.log('  ' + failed.length + ' of ' + results.length + ' checks failed.\n');
-    process.exit(1);
+  } else {
+    console.log('  all ' + results.length + ' checks passed.\n');
   }
-  console.log('  all ' + results.length + ' checks passed.\n');
+  return failed.length === 0;
 }
+
+// ------------------------------------------------------------------ drive
+
+process.exit(audit() ? 0 : 1);

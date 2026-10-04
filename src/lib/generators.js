@@ -349,10 +349,8 @@
     CHARSETS: CHARSETS,
     AMBIGUOUS: AMBIGUOUS,
     SEPARATORS: SEPARATORS,
-    MAX_CUSTOM_ALPHABET: MAX_CUSTOM_ALPHABET,
-    GeneratorError: GeneratorError,
+    // Read by controls.js to report how large a custom alphabet is.
     uniqueChars: uniqueChars,
-    filterChars: filterChars,
     buildAlphabet: buildAlphabet,
     generatePassword: generatePassword,
     generatePassphrase: generatePassphrase,

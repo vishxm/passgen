@@ -142,15 +142,6 @@ test('durations are readable at every scale', () => {
   assert.match(fromSeconds(1e40), /10\^/);
 });
 
-test('counts are readable at every scale', () => {
-  assert.equal(E.formatCount(0), '1');
-  assert.equal(E.formatCount(10), '1,024');
-  assert.equal(E.formatCount(20), '1.05 million');
-  assert.match(E.formatCount(30), /billion/);
-  assert.match(E.formatCount(60), /quintillion/);
-  assert.equal(E.formatCount(129.7), '1.11 × 10^39');
-});
-
 test('strength tiers are monotonic', () => {
   const levels = [0, 20, 30, 45, 70, 80, 128].map((bits) => E.tier(bits).level);
   for (let i = 1; i < levels.length; i++) {

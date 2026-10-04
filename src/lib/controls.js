@@ -4,9 +4,9 @@
  * src/app.js is wiring: it reads elements, calls the generators, writes results.
  * Between those two halves sits a layer that is neither -- the rules about how
  * long a password may be given the alphabet currently selected, what a named
- * preset is made of, and which panel a mode shows. All of it is arithmetic over
- * an options object. None of it needs a document, so all of it lives here and
- * all of it is tested without one.
+ * preset is made of, which panel a mode shows, and what the page says it just
+ * made. All of it is arithmetic over an options object. None of it needs a
+ * document, so all of it lives here and all of it is tested without one.
  *
  * What stays in app.js is the part that genuinely cannot be separated: reading a
  * checkbox, writing a range input's max attribute, and the painting of results.
@@ -25,9 +25,14 @@
    * Every length control, paired with the number box beside it and the library
    * limits it belongs to. One list, because forgetting a pair is exactly how a
    * preset ends up inheriting the previous preset's ceiling.
+   *
+   * All four pairs are here, including the passphrase word count. Its max never
+   * narrows today, but the four sliders now share one always-visible slot, and a
+   * fifth rule applied to three of four would be the inconsistency.
    */
   var RANGE_PAIRS = [
     { range: 'length', number: 'length-number', limits: LIMITS.password },
+    { range: 'words', number: 'words-number', limits: LIMITS.passphrase },
     { range: 'pin-length', number: 'pin-length-number', limits: LIMITS.pin },
     { range: 'custom-length', number: 'custom-length-number', limits: LIMITS.custom },
   ];
@@ -200,9 +205,116 @@
     };
   }
 
-  /** Every preset name, for a test that checks the table has not lost one. */
-  function presetNames() {
-    return Object.keys(PRESETS);
+  /**
+   * The length a box currently holds, or null when it does not hold one yet.
+   *
+   * Empty, a lone "-", a half-deleted field: all the states a box passes
+   * through on the way to a number, and all of them null, so the caller leaves
+   * the slider alone instead of guessing. `Number` rather than `parseInt`
+   * because a number input accepts exponent notation -- Chromium keeps `e` in
+   * the value as you type it -- and parseInt("1e3") is 1.
+   */
+  function typedLength(raw) {
+    var text = String(raw === null || raw === undefined ? '' : raw).trim();
+    if (text === '') return null;
+    var value = Number(text);
+    if (!isFinite(value)) return null;
+    return Math.trunc(value);
+  }
+
+  /**
+   * What the box should show once the user has finished with it: the number
+   * they typed, pulled inside [min, max].
+   *
+   * `current` is what the slider holds now, and is what an unreadable box falls
+   * back to -- a cleared or half-typed field must not move the slider, but it
+   * must not be left sitting on screen either. It is read through typedLength
+   * rather than compared as it arrived, because the caller has a range input's
+   * `.value` -- a string -- and 20 is not the same as "20"; comparing them raw
+   * would report every settled box as a change and regenerate on every blur.
+   *
+   * `changed` is true only when the slider must move, so the caller can skip a
+   * regenerate for a box that was corrected back to where it already was. blur
+   * and change both fire, so settle runs twice and must be idempotent.
+   */
+  function settledLength(raw, min, max, current) {
+    var typed = typedLength(raw);
+    var held = typedLength(current);
+    if (held === null) held = min;
+    if (typed === null) return { value: held, changed: false };
+    var settled = Math.max(min, Math.min(max, typed));
+    return { value: settled, changed: settled !== held };
+  }
+
+  // --------------------------------------------------------------- the hinge
+
+  /** How many of what the result is made of. */
+  function unitCount(result) {
+    if (result.kind === 'passphrase') return result.spec.words;
+    return result.spec.length;
+  }
+
+  /** What those are called. Singular; specText() pluralises. */
+  function unitNoun(result) {
+    if (result.kind === 'passphrase') return 'word';
+    if (result.kind === 'pin') return 'digit';
+    return 'character';
+  }
+
+  /** Locale-independent, so the hinge reads the same in Node and in a browser. */
+  function withCommas(value) {
+    return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  /**
+   * The one line under the plate: what was actually produced.
+   *
+   * "20 characters · lowercase + uppercase + digits + symbols · one of each
+   * type". It names the character classes rather than a bare alphabet size,
+   * because it sits directly under a plate whose characters are coloured by
+   * exactly those classes -- so the line is checked against the checkboxes above
+   * it, and the whole form can go behind one disclosure without losing it. That
+   * makes its accuracy load-bearing in a way the old wording ("alphabet of 90")
+   * never was, which is why it is here and tested here rather than painted in
+   * app.js.
+   *
+   * `wordlistSize` is passed in rather than read from the page: this file has no
+   * document, and the caller's word list is the only one that exists.
+   */
+  function specText(result, wordlistSize) {
+    var parts = [];
+    var units = unitCount(result);
+    parts.push(units + ' ' + unitNoun(result) + (units === 1 ? '' : 's'));
+
+    if (result.kind === 'passphrase') {
+      parts.push(wordlistSize
+        ? withCommas(wordlistSize) + '-word EFF list'
+        : 'word list unavailable');
+      if (result.spec.capitalize) parts.push('capitalised at random');
+      if (result.spec.appendDigit) parts.push('digit appended');
+      return parts.join(' · ');
+    }
+
+    var classes = result.alphabet && result.alphabet.classes ? result.alphabet.classes : null;
+    if (classes && classes.length) {
+      parts.push(classes.map(function (cls) {
+        return String(cls.label || cls.key).toLowerCase();
+      }).join(' + '));
+    } else {
+      parts.push('alphabet of ' + result.spec.alphabetSize);
+    }
+
+    // Only a password has per-class guarantees, and only worth saying when
+    // there is more than one class to guarantee.
+    if (result.kind === 'password' && classes && classes.length > 1) {
+      parts.push('one of each type');
+    }
+    if (result.spec.distinct) parts.push('no repeats');
+    if (result.alphabet && result.alphabet.removed && result.alphabet.removed.length) {
+      parts.push('removed ' + result.alphabet.removed.join(' '));
+    }
+
+    return parts.join(' · ');
   }
 
   /**
@@ -244,14 +356,15 @@
   PG.controls = {
     MODES: MODES,
     RANGE_PAIRS: RANGE_PAIRS,
-    PRESETS: PRESETS,
     kindLabel: kindLabel,
     modeState: modeState,
     lengthCeiling: lengthCeiling,
     clampToCeiling: clampToCeiling,
     relaxedCeilings: relaxedCeilings,
     presetFor: presetFor,
-    presetNames: presetNames,
+    typedLength: typedLength,
+    settledLength: settledLength,
+    specText: specText,
     normaliseDigest: normaliseDigest,
     digestVerdict: digestVerdict,
   };

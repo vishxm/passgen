@@ -22,8 +22,6 @@
     mode: 'password',
     result: null,
     bits: 0,
-    hidden: false,
-    copied: false,
   };
 
   // ------------------------------------------------------------------ dom
@@ -52,6 +50,67 @@
     if (!node) return fallback;
     var raw = node.value;
     return raw === '' ? fallback : raw;
+  }
+
+  // ------------------------------------------------------------------- flash
+
+  var FLASH_MS = 2500;
+  var FLASH_FADE_MS = 260;
+  var flashTimer = null;
+
+  function cancelFlashTimer() {
+    if (flashTimer === null) return;
+    clearTimeout(flashTimer);
+    flashTimer = null;
+  }
+
+  /**
+   * A transient message: copied, refused, cleared.
+   *
+   * The hinge used to do this job, and paid for it -- copySecret() overwrote the
+   * spec line with "On your clipboard" and it did not come back until you
+   * regenerated, so the one line that answers "what did my slider just do?"
+   * was gone exactly when you were deciding whether to press Copy again.
+   *
+   * The node is emptied rather than removed, because a live region that is taken
+   * out of the document stops being announced, and opacity carries the fade so
+   * nothing reflows mid-transition.
+   */
+  function flash(message) {
+    var node = $('secret-flash');
+    if (!node) return;
+    cancelFlashTimer();
+
+    setText(node, message);
+    node.classList.add('is-on');
+    flashTimer = setTimeout(function () {
+      flashTimer = null;
+      hideFlash();
+    }, FLASH_MS);
+  }
+
+  /** Fade first, empty once the transition is over, so nothing jumps. */
+  function hideFlash() {
+    var node = $('secret-flash');
+    if (!node) return;
+    node.classList.remove('is-on');
+    flashTimer = setTimeout(function () {
+      flashTimer = null;
+      setText(node, '');
+    }, FLASH_FADE_MS);
+  }
+
+  /**
+   * Take a pending message down at once rather than letting it linger. Used when
+   * a new secret makes it stale: the clipboard note describes the last value, and
+   * the plate no longer holds it.
+   */
+  function clearFlash() {
+    var node = $('secret-flash');
+    if (!node) return;
+    cancelFlashTimer();
+    setText(node, '');
+    node.classList.remove('is-on');
   }
 
   // ------------------------------------------------------------------ options
@@ -163,17 +222,27 @@
     host.textContent = '';
     host.appendChild(fragment);
     host.style.setProperty('--secret-size', secretSize(value.length) + 'px');
-    host.classList.toggle('is-hidden', state.hidden);
+    // Re-trigger the settle animation. Reading offsetWidth forces the layout the
+    // class change needs; without it a second regenerate in the same tick would
+    // just re-apply a class that is already there and nothing would move.
+    host.classList.remove('is-fresh');
+    void host.offsetWidth;
+    host.classList.add('is-fresh');
     return host;
   }
 
+  /*
+   * Six buckets, stepped for the single-column card. The plate grew a step when
+   * the two panels became one, and with it the type: at 720px wide the longest
+   * bucket still leaves a line to spare at two rows for a 128-character secret.
+   */
   function secretSize(length) {
-    if (length <= 16) return 30;
-    if (length <= 24) return 26;
-    if (length <= 32) return 22;
-    if (length <= 48) return 18;
-    if (length <= 72) return 15;
-    return 13;
+    if (length <= 16) return 36;
+    if (length <= 24) return 32;
+    if (length <= 32) return 28;
+    if (length <= 48) return 24;
+    if (length <= 72) return 20;
+    return 18;
   }
 
   // ------------------------------------------------------------------ entropy
@@ -185,57 +254,34 @@
     return entropy.bitsForClasses(result.spec);
   }
 
-  function unitCount(result) {
-    if (result.kind === 'passphrase') return result.spec.words;
-    return result.spec.length;
-  }
-
-  function unitNoun(result) {
-    if (result.kind === 'passphrase') return 'word';
-    if (result.kind === 'pin') return 'digit';
-    return 'character';
-  }
-
-  function alphabetSummary(result) {
-    if (result.kind === 'passphrase') {
-      var size = PG.WORDLIST ? PG.WORDLIST.length : 0;
-      return size ? size.toLocaleString() + ' words' : 'word list';
-    }
-    if (result.kind === 'pin') return result.spec.alphabetSize + ' digits';
-    if (result.alphabet && result.alphabet.classes && result.alphabet.classes.length) {
-      return result.alphabet.size + ' (' + result.alphabet.classes
-        .map(function (c) { return c.key; })
-        .join(' ') + ')';
-    }
-    return result.spec.alphabetSize + ' characters, yours';
-  }
-
   function paintMeter(result) {
     var bits = bitsFor(result);
     state.bits = bits;
 
     var verdict = entropy.tier(bits);
-    var units = unitCount(result);
-    var noun = unitNoun(result);
 
     var verdictNode = $('strength-label');
     verdictNode.textContent = verdict.label;
     verdictNode.className = 'meter-verdict tier-' + verdict.level;
 
-    setText($('bits-label'), bits.toFixed(1) + ' bits of entropy');
+    setText($('bits-label'), bits.toFixed(1) + ' bits');
 
     var fill = $('meter-fill');
     fill.style.setProperty('--fill', Math.max(2, Math.min(100, (bits / 128) * 100)) + '%');
     fill.className = 'meter-fill tier-' + verdict.level;
+  }
 
-    setText($('stat-bits'), bits.toFixed(2) + ' bits');
-    setText($('stat-count'), entropy.formatCount(bits));
-    setText($('stat-per-char'), units > 0 ? (bits / units).toFixed(2) + ' bits / ' + noun : '—');
-    setText($('stat-alphabet'), alphabetSummary(result));
-
+  /**
+   * The crack table, which no longer sits under the meter but has not gone
+   * anywhere either: it is inside the Verify this page disclosure, and it is
+   * still entropy.crackTimeRows() doing the arithmetic. Kept in its own function
+   * so that moving it out of view did not also mean painting it somewhere else.
+   */
+  function paintCrackRows(bits) {
     var rows = entropy.crackTimeRows(bits);
     var body = $('crack-rows');
     body.textContent = '';
+    show(document.querySelector('.crack'), true);
     rows.forEach(function (row) {
       var tr = document.createElement('tr');
 
@@ -256,29 +302,6 @@
       tr.appendChild(time);
       body.appendChild(tr);
     });
-  }
-
-  function describeResult(result) {
-    var parts = [];
-    var units = unitCount(result);
-    parts.push(units + ' ' + unitNoun(result) + (units === 1 ? '' : 's'));
-
-    if (result.kind === 'passphrase') {
-      var listSize = PG.WORDLIST ? PG.WORDLIST.length : 0;
-      parts.push(listSize.toLocaleString() + '-word EFF list');
-      if (result.spec.capitalize) parts.push('capitalised at random');
-      if (result.spec.appendDigit) parts.push('digit appended');
-    } else {
-      parts.push('alphabet of ' + result.spec.alphabetSize);
-      if (result.spec.distinct) parts.push('no repeats');
-      if (result.kind === 'password' && result.alphabet && result.alphabet.classes.length > 1) {
-        parts.push('at least one of each type');
-      }
-      if (result.alphabet && result.alphabet.removed && result.alphabet.removed.length) {
-        parts.push('removed ' + result.alphabet.removed.join(' '));
-      }
-    }
-    return parts.join(' · ');
   }
 
   // ------------------------------------------------------------------ generate
@@ -304,23 +327,29 @@
       $('strength-label').className = 'meter-verdict';
       setText($('bits-label'), '—');
       $('meter-fill').style.setProperty('--fill', '0%');
-      ['stat-bits', 'stat-count', 'stat-per-char', 'stat-alphabet'].forEach(function (id) {
-        setText($(id), '—');
-      });
       $('crack-rows').textContent = '';
+      // The caption promises a table. With no rows under it the promise is
+      // broken, so the whole table goes rather than leaving the heading
+      // stranded above an empty box.
+      show(document.querySelector('.crack'), false);
       return;
     }
 
     show($('secret-error'), false);
     state.result = result;
-    state.copied = false;
     show($('btn-clear-clip'), false);
     $('btn-copy').textContent = 'Copy';
+    clearFlash();
 
     paintSecret(result);
     paintMeter(result);
-    setText($('secret-status'), describeResult(result));
-    setText($('secret-kind'), result.kind === 'custom' ? 'custom password' : result.kind);
+    paintCrackRows(state.bits);
+
+    setText($('secret-status'), controls.specText(result, PG.WORDLIST ? PG.WORDLIST.length : 0));
+
+    // A screen reader announces the plate, so it has to be told what kind of
+    // thing is on it: without this every mode was announced as a password.
+    $('secret').setAttribute('aria-label', 'Generated ' + controls.kindLabel(state.mode));
   }
 
   // ------------------------------------------------------------------ clipboard
@@ -353,13 +382,12 @@
       : Promise.resolve(legacyCopy(text));
 
     return viaClipboard.then(function (ok) {
-      state.copied = ok;
       if (ok) {
         $('btn-copy').textContent = 'Copied';
         show($('btn-clear-clip'), true);
-        setText($('secret-status'), 'On your clipboard. This page has no memory of it beyond this tab.');
+        flash('On your clipboard. This page has no memory of it beyond this tab.');
       } else {
-        setText($('secret-status'), 'The browser refused clipboard access. Select the text and copy it by hand.');
+        flash('The browser refused clipboard access. Select the text and copy it by hand.');
       }
       renderIntegrity();
       return ok;
@@ -368,20 +396,19 @@
 
   function clearClipboard() {
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      setText($('secret-status'), 'This browser does not allow the page to clear the clipboard.');
+      flash('This browser does not allow the page to clear the clipboard.');
       return Promise.resolve(false);
     }
     return navigator.clipboard.writeText('').then(
       function () {
         $('btn-copy').textContent = 'Copy';
         show($('btn-clear-clip'), false);
-        state.copied = false;
-        setText($('secret-status'), 'Clipboard cleared. Some clipboard managers keep their own history.');
+        flash('Clipboard cleared. Some clipboard managers keep their own history.');
         renderIntegrity();
         return true;
       },
       function () {
-        setText($('secret-status'), 'The browser would not let the page clear the clipboard.');
+        flash('The browser would not let the page clear the clipboard.');
         return false;
       }
     );
@@ -418,33 +445,32 @@
     setText($('clip-writes'), String(figures.clipboardWrites));
     setText($('counter-origin'), originLabel(snap));
 
-    var netBadge = $('badge-network');
-    netBadge.textContent = '';
-    var netValue = document.createElement('span');
-    netValue.className = 'badge-value';
-    netValue.textContent = String(figures.networkTotal);
-    netBadge.appendChild(netValue);
-    netBadge.appendChild(document.createTextNode(
-      figures.networkTotal === 1 ? ' network call' : ' network calls'
-    ));
-    netBadge.classList.toggle('badge-alarm', figures.networkTotal > 0);
-
-    var storeBadge = $('badge-storage');
-    storeBadge.textContent = '';
-    var storeValue = document.createElement('span');
-    storeValue.className = 'badge-value';
-    storeValue.textContent = String(figures.storageWrites);
-    storeBadge.appendChild(storeValue);
-    storeBadge.appendChild(document.createTextNode(
-      figures.storageWrites === 1 ? ' storage write' : ' storage writes'
-    ));
-    storeBadge.classList.toggle('badge-alarm', figures.storageWrites > 0);
+    paintCounter($('strip-network'), figures.networkTotal, 'network call');
+    paintCounter($('strip-storage'), figures.storageWrites, 'storage write');
 
     $('net-total').classList.toggle('counter-alarm', figures.networkTotal > 0);
     $('store-total').classList.toggle('counter-alarm', figures.storageWrites > 0);
 
     paintChannels(snap);
     paintClock(snap);
+  }
+
+  /**
+   * One item of the footer strip. Rebuilt rather than written into, because the
+   * label is singular for exactly one call and the figure is the part that has to
+   * stay tabular.
+   */
+  function paintCounter(node, count, noun) {
+    if (!node) return;
+    node.textContent = '';
+
+    var value = document.createElement('span');
+    value.className = 'strip-value';
+    value.textContent = String(count);
+    node.appendChild(value);
+    node.appendChild(document.createTextNode(' ' + (count === 1 ? noun : noun + 's')));
+
+    node.classList.toggle('strip-alarm', count > 0);
   }
 
   /**
@@ -630,40 +656,86 @@
 
   // ------------------------------------------------------------------ controls
 
+  /**
+   * Keep a range slider and the number box beside it showing the same thing.
+   *
+   * The slider is the source of truth -- readOptions() reads it, and the presets
+   * and ceiling logic write it -- so the box is a mirror of the slider and never
+   * the other way round. Which means the one rule this function exists to hold
+   * is: never write to the box while the user is editing it. A clamp written back
+   * mid-keystroke refills a cleared field and turns a value the user is still
+   * typing into something they did not ask for, and no number that starts with a
+   * digit at or below min-1 is ever reachable again. A mirror does not get
+   * corrected mid-edit; it gets corrected when the edit ends.
+   *
+   * Both halves are arithmetic over the raw field value, so both live in
+   * controls.js and are tested without a browser: typedLength() for "is there a
+   * number here yet", settledLength() for "what should the box say now that the
+   * user has stopped".
+   */
   function linkRange(rangeId, numberId, onChange) {
     var range = $(rangeId);
     var number = $(numberId);
 
-    function push(fromRange) {
-      var min = parseInt(range.min, 10);
-      var max = parseInt(range.max, 10);
-      var next = parseInt(fromRange ? range.value : number.value, 10);
-      if (!isFinite(next)) next = min;
-      if (next < min) next = min;
-      if (next > max) next = max;
-      range.value = String(next);
-      number.value = String(next);
-      if (onChange) onChange(next);
+    function bounds() {
+      return { min: parseInt(range.min, 10), max: parseInt(range.max, 10) };
     }
 
-    range.addEventListener('input', function () { push(true); });
-    number.addEventListener('input', function () { push(false); });
-    number.addEventListener('blur', function () { push(false); });
-    return push;
+    function toSlider(value) {
+      range.value = String(value);
+      if (onChange) onChange(value);
+    }
+
+    // The slider is never mid-word, so mirroring into the box is safe.
+    range.addEventListener('input', function () {
+      var next = parseInt(range.value, 10);
+      if (!isFinite(next)) next = bounds().min;
+      number.value = String(next);
+      toSlider(next);
+    });
+
+    // The box is. Write nothing back to it; an unfinished or out-of-range
+    // value moves nothing at all, and a finished one is settled on blur.
+    number.addEventListener('input', function () {
+      var b = bounds();
+      var typed = controls.typedLength(number.value);
+      if (typed === null || typed < b.min || typed > b.max) return;
+      toSlider(typed);
+    });
+
+    function settle() {
+      var b = bounds();
+      var result = controls.settledLength(number.value, b.min, b.max, range.value);
+      if (number.value !== String(result.value)) number.value = String(result.value);
+      if (result.changed) toSlider(result.value);
+    }
+
+    number.addEventListener('change', settle);
+    number.addEventListener('blur', settle);
+    number.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') number.blur();
+    });
   }
 
+  /**
+   * Switch mode.
+   *
+   * `.mode-panel` is the whole contract: the buttons carry aria-checked and the
+   * panels carry visibility, and both compare a data attribute against the active
+   * mode. The always-on length slot reuses the class on purpose, so the four
+   * length pairs switch with the same loop and need no second rule.
+   */
   function setMode(mode) {
     state.mode = mode;
     var next = controls.modeState(mode);
 
-    Array.prototype.forEach.call(document.querySelectorAll('.mode'), function (button) {
+    Array.from(document.querySelectorAll('.mode')).forEach(function (button) {
       button.setAttribute('aria-checked', next.isSelected(button.dataset.mode) ? 'true' : 'false');
     });
-    Array.prototype.forEach.call(document.querySelectorAll('.mode-panel'), function (panel) {
+    Array.from(document.querySelectorAll('.mode-panel')).forEach(function (panel) {
       show(panel, next.showsPanel(panel.dataset.for));
     });
 
-    setText($('secret-kind'), next.kind);
     applyLengthCeiling();
     generate();
   }
@@ -746,14 +818,6 @@
     setMode(preset.mode);
   }
 
-  function toggleHidden() {
-    state.hidden = !state.hidden;
-    var button = $('btn-reveal');
-    button.setAttribute('aria-pressed', state.hidden ? 'true' : 'false');
-    setText(button, state.hidden ? 'Reveal' : 'Hide');
-    $('secret').classList.toggle('is-hidden', state.hidden);
-  }
-
   /**
    * The policy the browser actually parsed, read back out of the document.
    *
@@ -792,13 +856,7 @@
     });
     select.value = 'dash';
 
-    setText($('symbol-count'), generators.CHARSETS.symbols.length + ' characters');
     setText($('ambiguous-list'), 'removes ' + Array.from(generators.AMBIGUOUS).join(' '));
-
-    var size = PG.WORDLIST ? PG.WORDLIST.length : 0;
-    setText($('wordlist-note'), size
-      ? size.toLocaleString() + ' words, ' + Math.log2(size).toFixed(2) + ' bits each. Words may repeat.'
-      : 'word list unavailable');
     setText($('wordlist-credit'), 'the EFF Long Wordlist by Joseph Bonneau, CC BY 3.0 (eff.org/dice)');
     setText($('source-digest'), BUILD.sourceDigest);
 
@@ -831,19 +889,17 @@
       if (node.tagName === 'SELECT') node.addEventListener('change', generate);
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('.mode'), function (button) {
+    Array.from(document.querySelectorAll('.mode')).forEach(function (button) {
       button.addEventListener('click', function () { setMode(button.dataset.mode); });
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (chip) {
+    Array.from(document.querySelectorAll('.chip')).forEach(function (chip) {
       chip.addEventListener('click', function () { applyPreset(chip.dataset.preset); });
     });
 
     $('btn-regenerate').addEventListener('click', generate);
     $('btn-copy').addEventListener('click', copySecret);
     $('btn-clear-clip').addEventListener('click', clearClipboard);
-    $('btn-reveal').addEventListener('click', toggleHidden);
-    $('btn-print').addEventListener('click', function () { window.print(); });
     $('btn-selftest').addEventListener('click', runSelfTest);
     $('btn-digest').addEventListener('click', compareDigest);
     $('digest-input').addEventListener('keydown', function (event) {
@@ -860,8 +916,28 @@
       }
     });
 
+    bindDisclosures();
+
     window.addEventListener('focus', renderIntegrity);
     document.addEventListener('visibilitychange', renderIntegrity);
+  }
+
+  /**
+   * Closing a <details> whose contents had focus drops focus to <body>, and a
+   * keyboard user's next Tab starts again from the top of the document. So when
+   * a panel closes around the focus, the focus goes to its summary instead --
+   * which is where they just were pressing Enter on.
+   */
+  function bindDisclosures() {
+    Array.from(document.querySelectorAll('details')).forEach(function (panel) {
+      panel.addEventListener('toggle', function () {
+        if (panel.open) return;
+        var summary = panel.querySelector('summary');
+        var active = document.activeElement;
+        if (!summary || !active) return;
+        if (active === summary || panel.contains(active)) summary.focus();
+      });
+    });
   }
 
   function init() {
@@ -870,10 +946,24 @@
     bind();
     generate();
     renderIntegrity();
-    setInterval(renderIntegrity, 750);
+    /*
+     * One second, not 750ms. Every tick tears down and rebuilds ~19 channel rows
+     * plus 6 counter nodes, and the only figure that changes is paintClock's
+     * "Page open Ns." -- which is Math.floor(elapsedMs / 1000), so it has exactly
+     * one-second granularity anyway. 750ms bought nothing and did a quarter more
+     * DOM churn than it needed to, forever, on a page whose entire claim is that
+     * nothing happens here.
+     */
+    setInterval(renderIntegrity, 1000);
 
+    // A short word list means every passphrase here is weaker than the page
+    // claims. That is not a message with an expiry, so it goes in the assertive
+    // error line rather than the flash, which is for things that have just
+    // happened and are over in a couple of seconds.
     if (PG.WORDLIST && PG.WORDLIST.length !== 7776) {
-      setText($('secret-status'), 'Warning: the embedded word list has ' + PG.WORDLIST.length + ' words, not 7776.');
+      setText($('secret-error'),
+        'Warning: the embedded word list has ' + PG.WORDLIST.length + ' words, not 7776.');
+      show($('secret-error'), true);
     }
   }
 

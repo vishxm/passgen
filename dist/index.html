@@ -11,53 +11,46 @@
   re-checks them. If you edit app.js by hand, the page will refuse to run --
   that is the intended behaviour.
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Hfhi0XB+hCgcvDd0HDPYlN85VeWo3pL17QYmf1+2uKs='; style-src 'sha256-IH+4t7x31LiqsDOTDRXmt0Ri0y1rRzJ0dewR0hW2fZI='; connect-src 'none'; img-src data:; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
-<meta name="generator" content="passgen 1.0.0 · source 52ce7aa5b3d23f9ac27ff562dfc356d819ddc81a2dc9043c05f714d909c771ce">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-gS4FCtyglA2PoiaXVInJ7Wbsr4QCqPtm/0KBmiQikIg='; style-src 'sha256-KCAbmorZim+yVqAODoM4J2ivOAymzTBGHaBDipN52I0='; connect-src 'none'; img-src data:; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="generator" content="passgen 1.0.0 · source 2187a2371262aabd09197393196dfc2ebae4458c5e1765c1c41010741c7a2ce3">
 <meta name="referrer" content="no-referrer">
 <!-- An empty data: icon, so the browser never asks anyone for a favicon. The
      policy allows data: for images, and nothing else, purely so this works. -->
 <link rel="icon" href="data:,">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
 <meta name="description" content="A password generator that runs entirely in your browser. Nothing is stored, nothing is sent, and the browser itself blocks all network access.">
 <meta name="robots" content="noindex">
 <title>passgen &middot; a password generator that stays on your machine</title>
 <style>
 /*
- * styles.css -- dark, monospace, no downloaded assets.
+ * styles.css -- the design. Two halves, in one file, in this order.
  *
- * font-src is 'none' in the policy, so every glyph here comes from a font the OS
- * already has. There are no images either, which is why the grid, the meter and
- * the checkmarks are all gradients and borders.
+ *   1. THE STRUCTURAL LAYER (the first half). Everything that must be true for
+ *      the page to work at all, and is not a design decision:
+ *
+ *        - the box-sizing reset, and [hidden] beating every display rule below it
+ *        - .visually-hidden and .skip-link, which are behaviour, not decoration
+ *        - the focus ring, keyed off --focus so the design picks its own colour
+ *        - the flex and grid scaffolding: one column, and the groups that have to
+ *          lay out a particular way (a range slider beside its number box, the
+ *          mode tabs, the action buttons sharing the width)
+ *
+ *   2. THE DESIGN (the second half). Everything that is a choice: colour, type,
+ *      rule weight, spacing, motion. See the note at the top of that half.
+ *
+ * ORDER IS LOAD-BEARING. The structural rules come first so that a design rule of
+ * equal specificity wins, and so that [hidden]'s !important has display rules
+ * beneath it to beat. Moving the two halves around is not a refactor; it is a way
+ * to get a page that half-stops responding.
+ *
+ * Note what the structural half does NOT carry: the :root tokens. Only the design
+ * half defines one, so a var() that resolves to nothing is always a mistake rather
+ * than a silent fallback to a default nobody chose. --secret-size and --fill are
+ * written by app.js (paintSecret and paintMeter), and this file consumes both or
+ * the plate and the gauge stop responding.
  */
 
-:root {
-  --bg: #08090b;
-  --bg-deep: #050608;
-  --panel: #0d0f13;
-  --panel-raised: #11141a;
-  --line: #1d222b;
-  --line-strong: #2b323e;
-  --text: #e8ecf2;
-  --muted: #8b95a5;
-  --dim: #5c6575;
-  --accent: #5eead4;
-  --accent-dim: #2b8f80;
-  --accent-ink: #04211c;
-  --ok: #34d399;
-  --warn: #fbbf24;
-  --bad: #fb7185;
-
-  --c-lower: #e8ecf2;
-  --c-upper: #7dd3fc;
-  --c-digit: #fbbf24;
-  --c-symbol: #f0abfc;
-  --c-other: #94a3b8;
-
-  --radius: 10px;
-  --radius-sm: 6px;
-  --gap: 16px;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-}
+/* ------------------------------------------------------------------ reset */
 
 *,
 *::before,
@@ -67,8 +60,10 @@
 
 /*
  * The UA stylesheet's `[hidden] { display: none }` loses to any author rule that
- * sets `display`, and this file sets it on .btn, .mode-panel and friends. Without
- * this line every "hidden" mode panel renders at once.
+ * sets `display`, and both halves of this file set it on .btn, .mode-panel and
+ * friends. Without this line every "hidden" mode panel renders at once -- four
+ * length sliders stacked on top of each other. !important, because the design
+ * half comes after this one and would otherwise beat it.
  */
 [hidden] {
   display: none !important;
@@ -80,53 +75,37 @@ html {
 
 body {
   margin: 0;
-  padding: 28px 20px 64px;
-  max-width: 1180px;
-  margin-inline: auto;
-  font-family: var(--mono);
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--text);
-  background-color: var(--bg);
-  /* A faint grid, drawn with gradients because img-src is 'none'. */
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
-    radial-gradient(120% 80% at 50% -10%, rgba(94, 234, 212, 0.05), transparent 60%);
-  background-size: 32px 32px, 32px 32px, 100% 100%;
-  background-attachment: fixed;
-}
-
-::selection {
-  background: rgba(94, 234, 212, 0.28);
 }
 
 h1,
 h2,
-h3 {
+h3,
+p,
+dl,
+dd {
   margin: 0;
-  font-weight: 600;
-  letter-spacing: 0.02em;
 }
 
 p {
   margin: 0;
 }
 
-a {
-  color: var(--accent);
+/*
+ * The one thing that must not be styled here is the secret plate's user-select:
+ * `all` rather than `text` is deliberate, because "select all" is what makes Copy
+ * by hand possible at all, and this page refuses to keep the value.
+ */
+.secret {
+  user-select: all;
 }
 
-code {
-  font-family: inherit;
-  font-size: 0.94em;
-  padding: 0.1em 0.35em;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: var(--bg-deep);
-  color: var(--c-upper);
-}
+/* --------------------------------------------------------------- a11y bits */
 
+/*
+ * Offscreen, not display:none -- a hidden label is still read by a screen
+ * reader, and there is exactly one of these on the page (the digest compare
+ * field). clip-path rather than the old clip: rect(), which is deprecated.
+ */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -138,535 +117,963 @@ code {
   white-space: nowrap;
 }
 
+/*
+ * The skip link. Parked off the left edge until it takes focus, which is the only
+ * moment it exists. No transition: it has to be in the same frame as the focus
+ * ring or a keyboard user's first Tab appears to do nothing.
+ */
 .skip-link {
   position: absolute;
   left: -9999px;
   top: 0;
-  padding: 10px 14px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-radius: 0 0 var(--radius-sm) 0;
-  text-decoration: none;
-  font-weight: 600;
   z-index: 10;
+  padding: 10px 14px;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--focus);
+  color: var(--on-focus);
+  border: 1px solid var(--focus);
 }
 
 .skip-link:focus {
   left: 0;
 }
 
+/*
+ * One ring for the whole page, on --focus. The design half picks a colour that
+ * clears 3:1 against its own stock, which is the WCAG non-text contrast
+ * requirement for a focus indicator.
+ */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus, currentColor);
   outline-offset: 2px;
 }
 
-/* ------------------------------------------------------------- masthead */
+/* ------------------------------------------------------------------ layout */
 
-.masthead {
+/*
+ * One column at every width. The old two-column grid put the plate in a 1130px
+ * band and the slider that changes it in a 620px card, with 537px of strength
+ * readout between them; dragging a 620px control mutated a 1130px plate. There
+ * is nothing to distribute here any more, so there is no grid.
+ */
+main {
+  display: grid;
+}
+
+/* The groups whose layout the design half below is not free to change. */
+.modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+}
+
+.always-on {
+  display: block;
+}
+
+/*
+ * .mode-panel is the whole mode contract: setMode() in app.js switches these by
+ * attribute, and the always-on length slot reuses the class so the four length
+ * pairs switch with the same loop. display: grid because each panel is a stack of
+ * independent fields; only the gap is left to the design half below.
+ */
+.mode-panel {
+  display: grid;
+}
+
+.field {
+  display: grid;
+}
+
+.field-row {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-bottom: 18px;
-  margin-bottom: 22px;
-  border-bottom: 1px solid var(--line);
+}
+
+/* The slider takes the slack; the design half sizes the number box. */
+.field-row > input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-row > input[type="number"] {
+  flex: none;
+}
+
+/* Regenerate and Copy share the width equally. */
+.actions {
+  display: flex;
+}
+
+.actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.toggles {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.toggle span {
+  display: grid;
+}
+
+/*
+ * A toggle's sub-label is off unless it earns its place. Twelve of them used to
+ * sit under twelve labels, and eight were the label again in different words
+ * ("Digits / 0-9 · 10"). The rule: delete restatements, keep consequences -- so
+ * `small` is hidden by default and the three that tell you something the label
+ * cannot opt back in with .keep.
+ */
+.toggle small {
+  display: none;
+}
+
+.toggle small.keep {
+  display: block;
+}
+
+/* The counter block closes as a grid, so the six cells leave no hole. */
+.counters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  margin: 0;
+  padding: 0;
+}
+
+.counter {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * All figures are tabular: these numbers are compared against each other, and a
+ * proportional figure changes width as it counts.
+ */
+.counter dd,
+.meter-bits,
+.c-time,
+.strip-value,
+.channel-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The crack table's three columns are fixed so the numbers stay in a column. */
+.crack {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.crack .c-time {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.crack .c-detail {
+  vertical-align: top;
+}
+
+/* The disclosure triangle is replaced by the design's own marker, further down. */
+.disclosure > summary,
+.advanced > summary,
+.adjust > summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker,
+.advanced > summary::-webkit-details-marker,
+.adjust > summary::-webkit-details-marker {
+  display: none;
+}
+
+/*
+ * A range input needs appearance:none on the element as well as on the track, or
+ * the UA's own thumb draws through the one the design draws. The design owns the
+ * rest.
+ */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* The custom checkbox. Sized and marked by the design; positioned here because
+   the ::after check mark is positioned against the input. */
+.toggle input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  position: relative;
+  cursor: pointer;
+}
+
+/* Select gets no native arrow: the design draws its own caret out of gradients. */
+select.text-input {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* Everything is inline-flex so the button label and its <kbd> sit on one line. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------- motion */
+
+/*
+ * One kill switch, honoured by the design half below: no transition and no
+ * animation anywhere, for anyone who has asked the OS not to move things. It
+ * also has to null the .secret.is-fresh keyframes by name, because an animation
+ * with duration 0 still fires its from-state for one frame.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ================================================================== the design
+ *
+ * THE IDEA. A password is a specification with an uncertainty attached to it, so
+ * this page draws it that way. Everything is dimensioned, everything is on the
+ * grid, and the strength gauge is a measured span with ticks and a dimension
+ * witness line rather than a bar that fills up. Mono throughout, because a
+ * drafting sheet has one hand; the labels are uppercase because a drawing's
+ * annotations are uppercase, and they are the same mono at a smaller size because
+ * a drawing has no second typeface either.
+ *
+ * THE GRID IS LOAD-BEARING. A 24px square in 12% cyan over a paper-white stock,
+ * with a heavier line every 96px -- four small squares, the way real graph paper
+ * is ruled. It is drawn with two gradients rather than an image because img-src
+ * allows only inline bytes and a repeating tile would be neither. The grid is what
+ * ties a 0-radius layout together: with no rounding and no shadow to soften the
+ * boxes, without a grid on the page the whole thing would read as a form.
+ *
+ * WHY CYAN-BLUE INK RATHER THAN PENCIL. Graph paper is blue, so every line drawn
+ * on it inherits the paper. A graphite page would be a different and more obvious
+ * design; cyan is the colour that only works because the grid is there to justify
+ * it, and it makes the whole page feel like one drawing rather than a form with
+ * blue text in it.
+ *
+ * THE GAUGE IS A DIMENSION LINE. Two witness lines at each end, an arrowed span
+ * between them, and a centred break in the rule at the 60-bit mark -- the place
+ * where guessing stops being the threat is a change in the drawing, not a
+ * differently-coloured bar. That is the one ornament on the page and it is the
+ * whole metaphor made visible.
+ */
+
+:root {
+  /* Stock: paper, ruled. */
+  --stock: #eef5fb;
+  --stock-deep: #e2ecf6; /* recessed: the plate, the gauge track, code */
+  --stock-lift: #f7fbff; /* raised: inputs, chips, disclosure bars */
+
+  /* Ink: cyan-blue, at three densities rather than three hues, so the page reads
+     as one drawing ink at different strengths. --ink-mute clears 4.5:1 on
+     --stock-lift (6.5:1). */
+  --ink: #0c2c4d;
+  --ink-soft: #1d4a75;
+  --ink-mute: #2f5f8a;
+
+  /* Rules. The 5mm blue line is --rule-strong and clears 3:1 on stock (3.3:1). */
+  --rule: #b8d2e8;
+  --rule-strong: #5d8bb5;
+
+  /* One spot: the drafting blue, darker than the ink, for callouts. */
+  --callout: #0a63b8;
+  --verified: #0d6a52; /* "dimensioned and confirmed", which is what a count is */
+
+  --page: 720px;
+
+  --focus: var(--callout);
+  --on-focus: #f7fbff;
+
+  /* One face. ui-monospace resolves to SF Mono on Apple, Cascadia Mono on
+     Windows, DejaVu Sans Mono on Linux; all three are drawn at these sizes. */
+  --ui: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono",
+    "Liberation Mono", monospace;
+  --display: var(--ui);
+}
+
+/* ------------------------------------------------------------------- stock */
+
+body {
+  --page: 720px;
+  padding: 28px 22px 64px;
+  max-width: calc(var(--page) + 44px);
+  margin-inline: auto;
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  background-color: var(--stock);
+  /*
+   * Graph paper: a 12px square, with a heavier line every 96px. Two gradient
+   * pairs, one set per axis, because a single gradient can only draw one line and
+   * the sheet needs two scales. Sized in px rather than in em so the squares stay
+   * square when the type size changes.
+   */
+  background-image:
+    linear-gradient(rgba(12, 44, 77, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 44, 77, 0.075) 1px, transparent 1px),
+    linear-gradient(rgba(12, 44, 77, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 44, 77, 0.13) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px, 96px 96px, 96px 96px;
+}
+
+::selection {
+  background: rgba(10, 99, 184, 0.2);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+a {
+  color: var(--callout);
+}
+
+code {
+  font-family: var(--ui);
+  font-size: 0.92em;
+  padding: 0.05em 0.3em;
+  color: var(--ink);
+  background: var(--stock-deep);
+  border: 1px solid var(--rule);
+}
+
+/* --------------------------------------------------------------- masthead */
+
+.masthead {
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--ink);
 }
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent);
-  border: 1px solid var(--accent-dim);
-  border-radius: var(--radius-sm);
-  background: rgba(94, 234, 212, 0.07);
-}
-
-.brand-text h1 {
-  font-size: 17px;
-  text-transform: lowercase;
-  letter-spacing: 0.06em;
-}
-
-.brand-text p {
-  color: var(--muted);
-  font-size: 12.5px;
-}
-
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  font-size: 11.5px;
-  color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--panel);
-  white-space: nowrap;
-}
-
-.badge-value {
-  color: var(--ok);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.badge-alarm {
-  border-color: var(--warn);
-  color: var(--warn);
-}
-
-.badge-alarm .badge-value {
-  color: var(--warn);
-}
-
-/* ------------------------------------------------------------- layout */
-
-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: var(--gap);
-  align-items: start;
-}
-
-.panel-secret {
-  grid-column: 1 / -1;
-}
-
-.panel {
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-}
-
-.panel-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 11px;
 }
 
-.panel-head h2 {
-  font-size: 13px;
+/* The mark is the drawing-office title block glyph, in the callout blue. */
+.brand-mark {
+  font-family: var(--ui);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--callout);
+}
+
+.brand h1 {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--muted);
+  letter-spacing: 0.2em;
 }
 
-.panel-note {
-  font-size: 11.5px;
-  color: var(--dim);
+/* ------------------------------------------------------------------ layout */
+
+/*
+ * THE SHEET. A drawn frame with corner ticks, sitting on the grid: no fill at all
+ * on the card itself, so the ruling runs continuously underneath everything. A
+ * filled card would be a panel; a frame with ticks at its corners is a drawing
+ * extent, which is what this page is.
+ */
+.deck {
+  position: relative;
+  padding: 20px 24px 24px;
+  border: 1px solid var(--ink);
+  background: rgba(247, 251, 255, 0.66);
 }
 
-.panel-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.deck::before {
+  /* The sheet number, drawn as an index tab on the top edge at the left. */
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 18px;
+  width: 44px;
+  height: 4px;
+  background: var(--callout);
 }
 
-/* ------------------------------------------------------------- buttons */
+.deck::after {
+  /* Corner ticks: eight 12px marks at the four corners, inside the frame. A
+     drawing marks its extent at the corners rather than along the edges, and here
+     that distinction is the difference between a sheet of paper and a table cell. */
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink));
+  background-size: 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px;
+  background-position:
+    left top,
+    left top,
+    right top,
+    right top,
+    left bottom,
+    left bottom,
+    right bottom,
+    right bottom;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+}
 
+/* ----------------------------------------------------------------- buttons */
+
+/*
+ * Buttons are drawing-office callouts: a label in a box, uppercase, with the box
+ * drawn in the rule colour rather than the ink. Hover thickens the box rather than
+ * filling it, because nothing on this sheet is filled.
+ */
 .btn {
-  display: inline-flex;
-  align-items: center;
   gap: 7px;
-  padding: 7px 12px;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--text);
-  background: var(--panel-raised);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+  padding: 7px 13px;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  background: var(--stock-lift);
+  border: 1px solid var(--rule-strong);
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease,
+    border-width 120ms ease;
 }
 
 .btn:hover {
-  border-color: var(--accent-dim);
-  color: #fff;
+  color: var(--ink);
+  background: #fff;
+  border-color: var(--ink);
+  border-width: 2px;
+  padding: 6px 12px;
 }
 
 .btn:active {
-  transform: translateY(1px);
+  background: var(--stock-deep);
 }
 
+/*
+ * The primary action is the one filled box on the sheet, in the callout blue. On a
+ * drawing a filled box means "this is the dimension that matters", and this is it.
+ */
 .btn-primary {
-  color: var(--accent-ink);
-  background: var(--accent);
-  border-color: var(--accent);
-  font-weight: 600;
+  color: var(--on-focus);
+  background: var(--callout);
+  border-color: var(--callout);
 }
 
 .btn-primary:hover {
-  background: #7df0dd;
-  border-color: #7df0dd;
-  color: var(--accent-ink);
+  color: var(--on-focus);
+  background: var(--callout);
+  border-color: var(--callout);
+  border-width: 1px;
+  padding: 7px 13px;
 }
 
 .btn-quiet {
+  color: var(--ink-soft);
   background: transparent;
-  color: var(--muted);
+  border-color: var(--rule);
+}
+
+.btn-quiet:hover {
+  color: var(--ink);
+  border-color: var(--ink);
 }
 
 .btn[aria-pressed="true"] {
-  color: var(--accent);
-  border-color: var(--accent-dim);
+  color: var(--callout);
+  background: var(--stock-lift);
+  border-color: var(--callout);
+  border-width: 2px;
+  padding: 6px 12px;
 }
 
+.btn:disabled {
+  color: var(--ink-mute);
+  border-color: var(--rule);
+  background: var(--stock-deep);
+  cursor: default;
+}
+
+/* The shortcut is a bracketed reference, the way a drawing annotates a keyboard
+   equivalent in its title block. */
 kbd {
-  padding: 1px 5px;
-  font: inherit;
-  font-size: 10.5px;
+  padding: 0 2px;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
   color: inherit;
-  border: 1px solid currentColor;
-  border-radius: 4px;
-  opacity: 0.65;
+  opacity: 0.7;
 }
 
-/* ------------------------------------------------------------- the secret */
+kbd::before {
+  content: "[";
+}
 
+kbd::after {
+  content: "]";
+}
+
+/* ------------------------------------------------------------- the plate */
+
+/*
+ * THE PLATE. A boxed note on the drawing, recessed by a blue tint rather than a
+ * shadow -- shadows would be the one lighting cue this design does not have. The
+ * secret is set in the drawing's own mono at display size, because a value on a
+ * drawing is always monospaced: it has to line up with the tick marks beside it.
+ */
 .secret {
   display: block;
-  min-height: 92px;
-  padding: 18px;
+  min-height: 112px;
+  padding: 18px 20px;
+  font-family: var(--ui);
   font-size: var(--secret-size, 26px);
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.5;
   letter-spacing: 0.01em;
   word-break: break-all;
   overflow-wrap: anywhere;
-  color: var(--c-lower);
-  background: var(--bg-deep);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--accent-dim);
-  border-radius: var(--radius-sm);
-  user-select: all;
+  color: var(--ink);
+  background: var(--stock-deep);
+  border: 1px solid var(--rule-strong);
 }
 
-.secret.is-hidden {
-  color: transparent;
-  text-shadow: 0 0 12px rgba(232, 236, 242, 0.55);
+/*
+ * Character classes, told apart by weight and by one darker ink. A drawing has no
+ * colour vocabulary beyond the ink it is drawn in, so the signals are density and
+ * a step darker -- and they survive being reproduced on a monochrome printer,
+ * which is the only printer a drafting office has.
+ *   lowercase  regular
+ *   uppercase  bold
+ *   digits     callout blue
+ *   symbols    callout blue, bold
+ */
+.secret .up {
+  font-weight: 700;
+  color: var(--ink);
 }
 
-.secret .up { color: var(--c-upper); }
-.secret .dg { color: var(--c-digit); }
-.secret .sy { color: var(--c-symbol); }
-.secret .ot { color: var(--c-other); }
+.secret .dg {
+  color: var(--callout);
+  font-weight: 500;
+}
+
+.secret .sy {
+  color: var(--callout);
+  font-weight: 700;
+}
+
+/* Present in a custom set, so it has to be styled rather than left to default. */
+.secret .ot {
+  color: var(--ink-soft);
+}
+
+.secret .wd {
+  color: var(--ink);
+  font-weight: 400;
+}
+
+/* A space has to be visible or a passphrase reads as one word. */
 .secret .sp {
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 3px;
+  background: rgba(10, 99, 184, 0.15);
+  box-shadow: 0 1px 0 rgba(10, 99, 184, 0.4);
 }
-.secret .wd { color: var(--c-other); }
+
+/* One orchestrated moment: a new value is struck onto the sheet. */
+@keyframes blueprint-strike {
+  from {
+    opacity: 0.2;
+    transform: translateX(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.secret.is-fresh {
+  animation: blueprint-strike 170ms ease-out;
+}
+
+/* The hinge is a dimension note: what was actually drawn, in what quantity. */
+.hinge {
+  margin-top: 11px;
+  padding-left: 10px;
+  border-left: 2px solid var(--callout);
+  font-family: var(--ui);
+  font-size: 10.5px;
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-mute);
+}
 
 .notice {
   margin-top: 10px;
+  font-family: var(--ui);
   font-size: 12px;
-  color: var(--muted);
+  line-height: 1.55;
+  color: var(--ink-soft);
   min-height: 1.2em;
 }
 
 .notice-error {
-  color: var(--bad);
+  color: var(--callout);
+  font-weight: 700;
 }
 
-/* ------------------------------------------------------------- meter */
+.actions {
+  gap: 8px;
+  margin-top: 14px;
+}
 
-.meter {
-  margin-top: 16px;
+.actions .btn {
+  padding: 9px 13px;
+  font-size: 11.5px;
+}
+
+/* Transient, and separate from the hinge: a note pinned to the margin. */
+.flash {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px dashed var(--rule-strong);
+  font-family: var(--ui);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.flash.is-on {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ gauge */
+
+/*
+ * THE DIMENSION LINE. This is the ornament. Two witness lines at the ends of the
+ * track, the span drawn between them, an arrowhead at the leading end, and a break
+ * in the rule at the 60-bit mark -- the place where guessing stops being the
+ * threat is drawn as a change in the dimension line, not as a different colour.
+ *
+ * The witness lines are the .meter-scale's ticks (the five bit boundaries, at
+ * their exact uneven positions) plus two end caps. The arrow is the meter-track's
+ * own border, and the leading end cap is a 3px gradient stop on the fill's box
+ * shadow -- four elements drawing one thing, which is what a dimension line is.
+ */
+.verdict {
+  margin-top: 20px;
 }
 
 .meter-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 7px;
+  gap: 14px;
+  margin-bottom: 12px;
 }
 
 .meter-verdict {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .meter-bits {
-  font-size: 12px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
+.meter-scale {
+  position: relative;
+  height: 13px;
+  margin-bottom: -1px;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 21.875%,
+    var(--ink-mute) 21.875%,
+    var(--ink-mute) calc(21.875% + 1px),
+    transparent calc(21.875% + 1px),
+    transparent 28.125%,
+    var(--ink-mute) 28.125%,
+    var(--ink-mute) calc(28.125% + 1px),
+    transparent calc(28.125% + 1px),
+    transparent 46.875%,
+    var(--callout) 46.875%,
+    var(--callout) calc(46.875% + 2px),
+    transparent calc(46.875% + 2px),
+    transparent 58.594%,
+    var(--ink-mute) 58.594%,
+    var(--ink-mute) calc(58.594% + 1px),
+    transparent calc(58.594% + 1px),
+    transparent 78.125%,
+    var(--ink-mute) 78.125%,
+    var(--ink-mute) calc(78.125% + 1px),
+    transparent calc(78.125% + 1px),
+    transparent 100%
+  );
+}
+
+/*
+ * The rule the span is measured against. Dashed, because on a drawing a dimension
+ * is measured against an extension line rather than against a solid edge.
+ */
 .meter-track {
-  height: 6px;
-  border-radius: 999px;
-  background: #14181f;
-  border: 1px solid var(--line);
-  overflow: hidden;
+  height: 12px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  box-shadow: inset 0 0 0 3px var(--stock);
 }
 
 .meter-fill {
   width: var(--fill, 0%);
   height: 100%;
-  background: var(--tier, var(--dim));
-  transition: width 140ms ease, background-color 140ms ease;
+  background: var(--ink-soft);
+  /* The arrowhead at the leading end: three 1px stops fanning into a point,
+     drawn as an inset shadow on the leading edge of the span. */
+  box-shadow: inset -3px 0 0 -1px var(--ink), inset -5px 0 0 -2px var(--ink);
+  transition: width 200ms ease, background-color 200ms ease;
 }
 
-.tier-0 { color: var(--bad); }
-.tier-1 { color: #fb923c; }
-.tier-2 { color: var(--warn); }
-.tier-3 { color: #a3e635; }
-.tier-4 { color: var(--ok); }
-.tier-5 { color: var(--accent); }
-
-.meter-fill.tier-0 { background: var(--bad); }
-.meter-fill.tier-1 { background: #fb923c; }
-.meter-fill.tier-2 { background: var(--warn); }
-.meter-fill.tier-3 { background: #a3e635; }
-.meter-fill.tier-4 { background: var(--ok); }
-.meter-fill.tier-5 { background: var(--accent); }
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1px;
-  margin: 14px 0 0;
-  padding: 0;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+/*
+ * Two readings, not six: below the threshold the number is a problem, above it
+ * the number stops being one. Splitting it further would be decoration; the
+ * verdict word carries the rest.
+ */
+.meter-fill.tier-0,
+.meter-fill.tier-1,
+.meter-fill.tier-2 {
+  background: var(--callout);
 }
 
-.stat {
-  padding: 9px 11px;
-  background: var(--panel);
+.meter-fill.tier-3,
+.meter-fill.tier-4,
+.meter-fill.tier-5 {
+  background: var(--verified);
 }
 
-.stat dt {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
+.meter-verdict.tier-0,
+.meter-verdict.tier-1,
+.meter-verdict.tier-2 {
+  color: var(--callout);
 }
 
-.stat dd {
-  margin: 3px 0 0;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+.meter-verdict.tier-3,
+.meter-verdict.tier-4,
+.meter-verdict.tier-5 {
+  color: var(--verified);
 }
 
-.crack {
-  width: 100%;
-  margin-top: 14px;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 12px;
-}
+/* ---------------------------------------------------------------- settings */
 
-.crack caption {
-  caption-side: top;
-  text-align: left;
-  padding-bottom: 8px;
-  color: var(--dim);
-  font-size: 11.5px;
-  line-height: 1.5;
-}
-
-.crack td {
-  padding: 7px 10px;
-  border-top: 1px solid var(--line);
-  vertical-align: top;
-}
-
-.crack .c-label {
-  width: 30%;
-  color: var(--text);
-}
-
-.crack .c-detail {
-  color: var(--dim);
-  font-size: 11.5px;
-}
-
-.crack .c-time {
-  width: 27%;
-  text-align: right;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* ------------------------------------------------------------- settings */
-
+/*
+ * Mode tabs are four cells in one box, sharing the dividers. The selected one is
+ * the callout blue, because on a drawing a selected element is marked, not filled.
+ */
 .modes {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 12px;
-  background: var(--bg-deep);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  gap: 0;
+  padding: 0;
+  margin-bottom: 13px;
+  border: 1px solid var(--rule-strong);
 }
 
 .mode {
   padding: 7px 6px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  border: 0;
+  border-right: 1px solid var(--rule-strong);
   cursor: pointer;
   transition: color 120ms ease, background-color 120ms ease;
 }
 
+.mode:last-child {
+  border-right: 0;
+}
+
 .mode:hover {
-  color: var(--text);
+  color: var(--ink);
+  background: rgba(12, 44, 77, 0.05);
 }
 
 .mode[aria-checked="true"] {
-  color: var(--accent);
-  background: rgba(94, 234, 212, 0.09);
-  border-color: var(--accent-dim);
+  color: #f7fbff;
+  background: var(--ink);
 }
 
 .presets {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 7px;
-  padding-bottom: 14px;
-  margin-bottom: 14px;
-  border-bottom: 1px dashed var(--line);
-}
-
-.presets-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
+  padding-bottom: 13px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .chip {
   padding: 4px 10px;
-  font: inherit;
-  font-size: 11.5px;
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
   background: transparent;
-  border: 1px dashed var(--line-strong);
-  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
   cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
 .chip:hover {
-  color: var(--accent);
-  border-color: var(--accent-dim);
-  border-style: solid;
+  color: var(--callout);
+  border-color: var(--callout);
+  background: var(--stock-lift);
 }
 
 .mode-panel {
-  display: grid;
-  gap: 16px;
+  gap: 18px;
+}
+
+/*
+ * The one control that is always on screen, between the strength readout and the
+ * disclosure. A heavy rule above it, because a drawing separates zones with a
+ * centre line and this is the one place the page needs one.
+ */
+.always-on {
+  margin-top: 20px;
+  padding-top: 17px;
+  border-top: 2px solid var(--ink);
 }
 
 .field {
-  display: grid;
   gap: 7px;
 }
 
+/* Field labels are annotations, so they are uppercased and set off the grid in a
+   lighter ink -- the way a drawing dims an annotation against its object. */
 .field > label,
 .toggles legend {
-  font-size: 11px;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
+  letter-spacing: 0.13em;
+  color: var(--ink-mute);
 }
 
 .field-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.field-row > input[type="range"] {
-  flex: 1;
+  gap: 11px;
 }
 
 .field-row > input[type="number"] {
-  width: 74px;
+  width: 78px;
 }
 
 .hint {
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-mute);
 }
 
-/* range */
+/* range -- a dimension line you drag, with witness ticks under it */
 
 input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 22px;
-  background: transparent;
-  cursor: pointer;
+  height: 24px;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background: #1b2029;
-  border: 1px solid var(--line);
+  height: 3px;
+  background: var(--rule-strong);
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -6px;
-  border-radius: 3px;
-  background: var(--accent);
-  border: 1px solid var(--accent);
+  width: 4px;
+  height: 20px;
+  margin-top: -9px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  /* The paper gap either side keeps the nib legible where it crosses the track. */
+  box-shadow: 0 0 0 3px var(--stock);
 }
 
 input[type="range"]::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: #1b2029;
-  border: 1px solid var(--line);
+  height: 3px;
+  background: var(--rule-strong);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 13px;
-  height: 13px;
-  border-radius: 3px;
-  background: var(--accent);
-  border: 1px solid var(--accent);
+  width: 4px;
+  height: 19px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  box-shadow: 0 0 0 3px var(--stock);
+}
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--stock), 0 0 0 5px var(--focus);
+}
+
+input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--stock), 0 0 0 5px var(--focus);
 }
 
 /* number / text / select / textarea */
@@ -675,12 +1082,12 @@ input[type="number"],
 .text-input {
   width: 100%;
   padding: 7px 10px;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--text);
-  background: var(--bg-deep);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
+  font-family: var(--ui);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--stock-lift);
+  border: 1px solid var(--rule-strong);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 input[type="number"] {
@@ -695,139 +1102,169 @@ textarea.text-input {
 
 input::placeholder,
 textarea::placeholder {
-  color: #4a5261;
+  color: var(--ink-mute);
+  opacity: 0.68;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--accent-dim);
+  border-color: var(--callout);
+  box-shadow: 0 0 0 2px rgba(10, 99, 184, 0.16);
 }
 
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* The caret is drawn with two gradients: appearance:none otherwise leaves the
+   field looking like a plain box with no sign it opens anything. */
 select.text-input {
-  appearance: none;
-  cursor: pointer;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position: right 14px center, right 9px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
 
 /* toggles */
 
 .toggles {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  border: 0;
+  gap: 0;
 }
 
 .toggles legend {
-  padding: 0 0 8px;
+  padding: 0 0 9px;
 }
 
 .toggle {
-  display: flex;
-  align-items: flex-start;
   gap: 10px;
-  padding: 7px 9px;
+  padding: 6px 8px;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .toggle:hover {
-  background: var(--panel-raised);
-  border-color: var(--line);
+  background: var(--stock-lift);
+  border-color: var(--rule);
 }
 
+/* The checkbox is an empty cell that gets a tick when it is filled in. Ticks, not
+   fills: a drawing marks a value, it does not flood it. */
 .toggle input {
-  appearance: none;
-  -webkit-appearance: none;
-  flex: none;
   width: 16px;
   height: 16px;
-  margin: 2px 0 0;
-  background: var(--bg-deep);
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
+  margin: 3px 0 0;
+  background: var(--stock-lift);
+  border: 1px solid var(--rule-strong);
+  transition: border-color 120ms ease;
 }
 
 .toggle input:checked {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--stock-lift);
+  border-color: var(--callout);
+  border-width: 2px;
 }
 
 .toggle input:checked::after {
   content: "";
   position: absolute;
-  left: 4.5px;
-  top: 1px;
-  width: 4px;
+  left: 3px;
+  top: 0;
+  width: 5px;
   height: 9px;
-  border: solid var(--accent-ink);
+  border: solid var(--callout);
   border-width: 0 2px 2px 0;
   transform: rotate(42deg);
 }
 
 .toggle span {
-  display: grid;
-  gap: 1px;
-  font-size: 12.5px;
+  gap: 2px;
+  font-family: var(--ui);
+  font-size: 12px;
+  color: var(--ink);
 }
 
-.toggle small {
-  font-size: 11px;
-  color: var(--dim);
+.toggle small.keep {
+  font-family: var(--ui);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-mute);
 }
 
 /* disclosures */
 
 .disclosure,
-.advanced {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-deep);
+.advanced,
+.adjust {
+  border: 1px solid var(--rule-strong);
+  background: rgba(247, 251, 255, 0.7);
 }
 
 .disclosure > summary,
-.advanced > summary {
-  padding: 9px 12px;
-  font-size: 12px;
-  color: var(--muted);
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.advanced > summary,
+.adjust > summary {
+  gap: 9px;
+  padding: 8px 11px;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  transition: color 120ms ease, background-color 120ms ease;
 }
 
-.disclosure > summary::-webkit-details-marker,
-.advanced > summary::-webkit-details-marker {
-  display: none;
+.disclosure > summary:hover,
+.advanced > summary:hover,
+.adjust > summary:hover {
+  color: var(--callout);
+  background: var(--stock-lift);
 }
 
+/* The marker is a section letter, the way a drawing's notes are keyed A, B, C. */
 .disclosure > summary::before,
-.advanced > summary::before {
-  content: "+";
-  color: var(--accent);
-  font-weight: 600;
-  width: 1ch;
+.advanced > summary::before,
+.adjust > summary::before {
+  content: "\00A7";
+  width: 1.5em;
+  font-weight: 700;
+  color: var(--callout);
 }
 
-.disclosure[open] > summary::before,
-.advanced[open] > summary::before {
-  content: "\2212";
+.disclosure[open],
+.advanced[open],
+.adjust[open] {
+  background: rgba(247, 251, 255, 0.94);
 }
 
 .disclosure[open] > summary,
-.advanced[open] > summary {
-  border-bottom: 1px solid var(--line);
+.advanced[open] > summary,
+.adjust[open] > summary {
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .disclosure > *:not(summary),
-.advanced > *:not(summary) {
+.advanced > *:not(summary),
+.adjust > *:not(summary) {
   margin: 12px;
+}
+
+/*
+ * The disclosure that stands in for the whole settings panel. Its children are the
+ * per-mode panels, so it needs no padding of its own, but they would sit flush
+ * against the summary rule without a little.
+ */
+.adjust {
+  margin-top: 16px;
+}
+
+.adjust > .mode-panel {
+  gap: 16px;
 }
 
 .advanced[open] {
@@ -835,78 +1272,87 @@ select.text-input {
 }
 
 .advanced > .field {
-  margin: 12px 0 8px;
+  margin: 12px 0 9px;
 }
 
-/* ------------------------------------------------------------- receipts */
+/* ---------------------------------------------------------------- receipts */
 
 .lede {
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.6;
-  color: var(--muted);
-  margin-bottom: 14px;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
 }
 
-/* A receipt, not a dashboard: label left, figure right, ruled in between. */
+/*
+ * THE ZEROS ARE THE PRODUCT. Each figure gets a cell and the number is the largest
+ * thing in this section, because "0 network calls" is the claim the whole page
+ * exists to support. The cells share hairlines so the block reads as one ruled
+ * schedule rather than six separate boxes, which is how a drawing tables its
+ * data.
+ */
 .counters {
-  margin: 0;
-  padding: 4px 0 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-deep);
+  gap: 0;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
 }
 
 .counter {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 11px;
-  border-bottom: 1px solid var(--line);
-}
-
-.counter:last-child {
-  border-bottom: 0;
+  gap: 3px;
+  padding: 10px 11px 11px;
+  background: rgba(247, 251, 255, 0.7);
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
 }
 
 .counter dt {
-  font-size: 11.5px;
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
 }
 
 .counter dd {
-  margin: 0;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ok);
+  font-family: var(--ui);
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.14;
+  color: var(--verified);
   white-space: nowrap;
 }
 
 .counter dd.counter-alarm {
-  color: var(--warn);
+  color: var(--callout);
 }
 
-/* The origin is a string, not a measured count, so it does not get the tabular
-   green that the rest of this table uses to mean "a figure we produced". */
+/*
+ * The origin is a string rather than a measured count, so it keeps a small type
+ * size instead of borrowing the 25px figure. The cell says "these are the
+ * counters"; the type says which of them are counts.
+ */
 .counter dd.counter-text {
-  font-family: var(--mono);
+  margin-top: auto;
   font-size: 11.5px;
-  color: var(--muted);
-  text-align: right;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink-soft);
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
 .counter-note {
-  margin-top: 10px;
-  font-size: 11.5px;
-  line-height: 1.55;
-  color: var(--dim);
+  margin-top: 13px;
+  font-size: 12px;
+  line-height: 1.58;
+  color: var(--ink-mute);
 }
 
 .channel-list {
   display: grid;
-  gap: 3px;
+  gap: 0;
+  font-family: var(--ui);
   font-size: 11.5px;
 }
 
@@ -915,8 +1361,8 @@ select.text-input {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  padding: 3px 0;
-  border-bottom: 1px dotted var(--line);
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--rule-strong);
 }
 
 .channel-row:last-child {
@@ -924,50 +1370,55 @@ select.text-input {
 }
 
 .channel-name {
-  color: var(--muted);
+  color: var(--ink-soft);
   overflow-wrap: anywhere;
 }
 
 .channel-count {
-  color: var(--ok);
-  font-variant-numeric: tabular-nums;
+  color: var(--verified);
   white-space: nowrap;
 }
 
 .channel-row.is-hit .channel-count {
-  color: var(--warn);
+  color: var(--callout);
+  font-weight: 700;
 }
 
 .channel-idle {
-  color: var(--dim);
-  font-size: 11.5px;
+  font-family: var(--ui);
+  font-size: 12px;
+  line-height: 1.58;
+  color: var(--ink-mute);
 }
 
+/* The policy is quoted verbatim from the document head, so it is set as a block
+   quote with the callout bar in the margin -- a quoted note, not a code listing. */
 .policy {
   margin: 0;
-  padding: 11px;
+  padding: 12px;
+  font-family: var(--ui);
   font-size: 11px;
-  line-height: 1.6;
-  color: var(--c-upper);
+  line-height: 1.68;
+  color: var(--ink-soft);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--stock-deep);
+  border: 1px solid var(--rule-strong);
+  border-left: 2px solid var(--callout);
 }
 
 .selftest {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--line);
+  margin-top: 19px;
+  padding-top: 17px;
+  border-top: 2px solid var(--ink);
 }
 
 .selftest .hint {
-  margin-top: 8px;
+  margin-top: 9px;
 }
 
 .selftest-results {
-  margin-top: 12px;
+  margin-top: 13px;
 }
 
 .selftest-results:empty {
@@ -975,233 +1426,209 @@ select.text-input {
 }
 
 .test-group {
-  margin-bottom: 12px;
+  margin-bottom: 15px;
 }
 
 .test-group h3 {
-  font-size: 10.5px;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
-  margin-bottom: 6px;
+  letter-spacing: 0.13em;
+  color: var(--ink-mute);
+  margin-bottom: 7px;
 }
 
 .test-row {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px dotted var(--line);
+  grid-template-columns: 17px minmax(0, 1fr);
+  gap: 9px;
+  padding: 7px 0;
+  border-bottom: 1px dotted var(--rule-strong);
 }
 
 .test-mark {
+  font-family: var(--ui);
   font-weight: 700;
   line-height: 1.5;
 }
 
-.test-pass .test-mark { color: var(--ok); }
-.test-fail .test-mark { color: var(--bad); }
-
-.test-label {
-  font-size: 12px;
+.test-pass .test-mark {
+  color: var(--verified);
 }
 
-.test-detail,
-.test-observed {
-  font-size: 11px;
-  color: var(--dim);
+.test-fail .test-mark {
+  color: var(--callout);
+}
+
+.test-label {
+  font-family: var(--ui);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.test-detail {
+  font-family: var(--ui);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-mute);
   overflow-wrap: anywhere;
 }
 
+/* The observed value is a reading off an instrument, so it is quoted at a smaller
+   size in the softer ink. */
 .test-observed {
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
 }
 
 .digest {
+  padding: 10px 12px;
+  font-family: var(--ui);
   font-size: 11.5px;
-  color: var(--c-upper);
+  line-height: 1.5;
+  color: var(--ink);
   overflow-wrap: anywhere;
-  padding: 9px 11px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--stock-deep);
+  border: 1px solid var(--rule-strong);
+  border-left: 2px solid var(--callout);
 }
 
-/* ------------------------------------------------------------- colophon */
+/* ------------------------------------------------------------------ footer */
+
+.footer {
+  max-width: var(--page);
+  margin: 26px auto 0;
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 20px;
+  margin: 0;
+  padding-top: 13px;
+  border-top: 2px solid var(--ink);
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-mute);
+}
+
+.strip-item {
+  white-space: nowrap;
+}
+
+.strip-value {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--verified);
+}
+
+.strip-alarm,
+.strip-alarm .strip-value {
+  color: var(--callout);
+}
+
+.footer > .disclosure {
+  margin-top: 10px;
+}
 
 .colophon {
-  margin-top: 26px;
-  padding-top: 22px;
-  border-top: 1px solid var(--line);
-}
-
-.colophon-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-}
-
-.colophon h2 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  margin-bottom: 7px;
-}
-
-.colophon p {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
-  color: var(--dim);
+  color: var(--ink-soft);
 }
 
 .legal {
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px dotted var(--line);
-  font-size: 11px;
-  color: var(--dim);
+  padding-top: 15px;
+  border-top: 1px solid var(--rule-strong);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-mute);
 }
 
-/* ------------------------------------------------------------- responsive */
+/* -------------------------------------------------------------- responsive */
 
-@media (max-width: 900px) {
-  main {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 560px) {
+  body {
+    padding: 18px 13px 52px;
   }
 
-  .panel-secret {
-    grid-column: auto;
+  /*
+   * The grid goes with the page. On a 390px screen a 24px square is a large
+   * fraction of the width and four small squares across would be the loudest
+   * thing on it, so it halves rather than scaling.
+   */
+  body {
+    background-image:
+      linear-gradient(rgba(12, 44, 77, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(12, 44, 77, 0.07) 1px, transparent 1px),
+      linear-gradient(rgba(12, 44, 77, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(12, 44, 77, 0.12) 1px, transparent 1px);
+    background-size: 12px 12px, 12px 12px, 48px 48px, 48px 48px;
+  }
+
+  .deck {
+    padding: 15px 13px 17px;
+  }
+
+  .deck::before {
+    left: 12px;
+  }
+
+  .deck::after {
+    inset: 4px;
   }
 
   .modes {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .crack .c-detail {
-    display: none;
+  /* The shared dividers only work in a single row; in two rows they read as a
+     broken grid, so each cell carries its own bottom rule. */
+  .mode {
+    border-bottom: 1px solid var(--rule-strong);
   }
 
-  .crack .c-label {
-    width: 45%;
+  .mode:nth-child(2n) {
+    border-right: 0;
   }
 
-  .crack .c-time {
-    width: 55%;
-  }
-}
-
-@media (max-width: 520px) {
-  body {
-    padding: 18px 12px 48px;
-  }
-
-  .panel {
-    padding: 14px;
-  }
-
-  .panel-actions .btn {
-    flex: 1;
-    justify-content: center;
+  .mode:nth-last-child(-n + 2) {
+    border-bottom: 0;
   }
 
   .field-row {
     flex-wrap: wrap;
   }
+
+  /* "Offline, rate-limited" is the longest label; drop the middle column and let
+     it break rather than crushing both remaining ones. */
+  .crack .c-detail {
+    display: none;
+  }
+
+  .crack .c-label {
+    width: 54%;
+  }
+
+  .crack .c-time {
+    width: 46%;
+  }
 }
 
-/* ------------------------------------------------------------- motion */
+/* ------------------------------------------------------------------ motion */
 
 @media (prefers-reduced-motion: reduce) {
-  * {
-    transition-duration: 0ms !important;
-    animation-duration: 0ms !important;
-  }
-}
-
-/* ------------------------------------------------------------- print */
-
-@media print {
-  body {
-    padding: 0;
-    background: #fff;
-    color: #000;
-  }
-
-  .masthead,
-  .panel:not(.panel-secret),
-  .colophon,
-  .skip-link,
-  .meter-track,
-  .crack {
-    display: none !important;
-  }
-
-  /* Paper cannot be clicked. Found by rendering the print stylesheet for the
-     first time: the button row came out with its screen fills, which wastes
-     toner and prints five labels that do nothing. */
-  .panel-actions {
-    display: none !important;
-  }
-
-  main {
-    display: block;
-  }
-
-  .panel-secret {
-    border: 0;
-    background: #fff;
-  }
-
-  .panel-head h2 {
-    color: #000;
-  }
-
-  /* The accent is a teal chosen to read against a near-black panel. On paper it
-     is roughly a 2:1 contrast ratio, which is not legible, so the few labels that
-     still print are pulled back to black. */
-  .meter-verdict,
-  .meter-bits,
-  #secret-status {
-    color: #000 !important;
-  }
-
-  .secret {
-    min-height: 0;
-    padding: 0;
-    font-size: 20pt;
-    color: #000;
-    background: #fff;
-    border: 0;
-  }
-
-  .secret .up,
-  .secret .dg,
-  .secret .sy,
-  .secret .ot,
-  .secret .wd {
-    color: #000;
-  }
-
-  .secret .sp {
-    background: none;
-  }
-
-  .stats {
-    border-color: #999;
-    background: #999;
-  }
-
-  .stat {
-    background: #fff;
-  }
-
-  .stat dt {
-    color: #444;
-  }
-
-  .counters {
-    display: none;
+  .secret.is-fresh {
+    animation: none;
   }
 }
 
@@ -1213,65 +1640,19 @@ select.text-input {
 <header class="masthead">
   <div class="brand">
     <span class="brand-mark" aria-hidden="true">#</span>
-    <div class="brand-text">
-      <h1>passgen</h1>
-      <p>A password generator that runs in this tab and nowhere else.</p>
-    </div>
+    <h1>passgen</h1>
   </div>
-  <ul class="badges" aria-label="Live privacy counters">
-    <li class="badge" id="badge-network"><span class="badge-value">0</span> network calls</li>
-    <li class="badge" id="badge-storage"><span class="badge-value">0</span> storage writes</li>
-  </ul>
 </header>
 
+<!--
+  One card, in causal order: what kind of thing, the thing itself, what it is,
+  what it cost you, what to do with it, how long it is, and finally the
+  everything-else behind one disclosure. The plate and its own controls share a
+  card so there is no gutter and no other panel between a slider and the number
+  it changes.
+-->
 <main>
-  <section class="panel panel-secret" aria-labelledby="secret-heading">
-    <div class="panel-head">
-      <h2 id="secret-heading">Your <span id="secret-kind">password</span></h2>
-      <div class="panel-actions">
-        <button type="button" class="btn btn-primary" id="btn-regenerate">Regenerate<kbd>G</kbd></button>
-        <button type="button" class="btn" id="btn-copy">Copy</button>
-        <button type="button" class="btn btn-quiet" id="btn-clear-clip" hidden>Clear clip</button>
-        <button type="button" class="btn btn-quiet" id="btn-reveal" aria-pressed="false">Hide</button>
-        <button type="button" class="btn btn-quiet" id="btn-print">Print</button>
-      </div>
-    </div>
-
-    <output id="secret" class="secret" for="btn-regenerate" aria-live="polite" aria-atomic="true" aria-label="Generated password"></output>
-
-    <p class="notice notice-error" id="secret-error" role="alert" hidden></p>
-    <p class="notice" id="secret-status" role="status"></p>
-
-    <div class="meter">
-      <div class="meter-head">
-        <span class="meter-verdict" id="strength-label">&mdash;</span>
-        <span class="meter-bits" id="bits-label">&mdash;</span>
-      </div>
-      <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
-
-      <dl class="stats">
-        <div class="stat"><dt>entropy</dt><dd id="stat-bits">&mdash;</dd></div>
-        <div class="stat"><dt>possibilities</dt><dd id="stat-count">&mdash;</dd></div>
-        <div class="stat"><dt>per character</dt><dd id="stat-per-char">&mdash;</dd></div>
-        <div class="stat"><dt>alphabet</dt><dd id="stat-alphabet">&mdash;</dd></div>
-      </dl>
-
-      <table class="crack">
-        <caption>
-          Time to crack, if an attacker already holds the hash and is allowed to guess
-          at a fixed rate. Guesses are independent, so a human who reuses a pattern
-          beats these numbers.
-        </caption>
-        <tbody id="crack-rows"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="panel" aria-labelledby="settings-heading">
-    <div class="panel-head">
-      <h2 id="settings-heading">Settings</h2>
-      <span class="panel-note">not remembered &mdash; reloading resets everything</span>
-    </div>
+  <section class="deck" aria-label="Generator">
 
     <div class="modes" role="radiogroup" aria-label="What kind of secret to generate">
       <button type="button" class="mode" role="radio" aria-checked="true" data-mode="password">Password</button>
@@ -1281,152 +1662,200 @@ select.text-input {
     </div>
 
     <div class="presets">
-      <span class="presets-label">Presets</span>
       <button type="button" class="chip" data-preset="strong">Strong</button>
       <button type="button" class="chip" data-preset="memorable">Memorable</button>
       <button type="button" class="chip" data-preset="maximum">Maximum</button>
       <button type="button" class="chip" data-preset="pin8">8-digit PIN</button>
     </div>
 
-    <!-- ------------------------------------------------ password -->
-    <div class="mode-panel" data-for="password">
-      <div class="field">
-        <label for="length">Length</label>
-        <div class="field-row">
-          <input type="range" id="length" min="4" max="128" step="1" value="20">
-          <input type="number" id="length-number" min="4" max="128" step="1" value="20" aria-label="Length, in characters">
-        </div>
+    <output id="secret" class="secret" for="btn-regenerate" aria-live="polite" aria-atomic="true" aria-label="Generated password"></output>
+
+    <p class="notice notice-error" id="secret-error" role="alert" hidden></p>
+
+    <!-- The hinge. Directly under the plate, and permanent: it answers "what did
+         my slider just do?" without being overwritten by the next action. -->
+    <p class="hinge" id="secret-status" role="status"></p>
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="btn-regenerate">Regenerate<kbd>G</kbd></button>
+      <button type="button" class="btn" id="btn-copy">Copy</button>
+      <button type="button" class="btn btn-quiet" id="btn-clear-clip" hidden>Clear clip</button>
+    </div>
+
+    <!-- Transient, and separate from the hinge on purpose. It fades rather than
+         being removed, so the live region stays registered with the screen
+         reader. -->
+    <p class="flash" id="secret-flash" role="status"></p>
+
+    <div class="verdict">
+      <div class="meter-head">
+        <span class="meter-verdict" id="strength-label">&mdash;</span>
+        <span class="meter-bits" id="bits-label">&mdash;</span>
       </div>
+      <div class="meter-scale" aria-hidden="true"></div>
+      <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+    </div>
 
-      <fieldset class="toggles">
-        <legend>Character types</legend>
-        <label class="toggle">
-          <input type="checkbox" id="use-lower" checked>
-          <span>Lowercase<small>a&ndash;z &middot; 26</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="use-upper" checked>
-          <span>Uppercase<small>A&ndash;Z &middot; 26</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="use-digits" checked>
-          <span>Digits<small>0&ndash;9 &middot; 10</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="use-symbols" checked>
-          <span>Symbols<small id="symbol-count">&middot;</small></span>
-        </label>
-      </fieldset>
-
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="require-each" checked>
-          <span>One of each type<small>guaranteed, not probable</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="no-repeat">
-          <span>No repeated characters<small>caps length at the alphabet size</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="exclude-ambiguous">
-          <span>Drop look-alikes<small id="ambiguous-list">&mdash;</small></span>
-        </label>
-      </fieldset>
-
-      <div class="field">
-        <label for="exclude">Also exclude these characters</label>
-        <input type="text" id="exclude" class="text-input" placeholder="e.g. &quot;' \  quotes and spaces" autocomplete="off" spellcheck="false">
-        <p class="hint" id="exclude-hint">Anything you type here is removed from every character type.</p>
-      </div>
-
-      <details class="advanced">
-        <summary>Fine-tune the symbol set</summary>
+    <!-- The one control worth always having on screen. Four pairs, one visible,
+         because which one is right is a fact about the mode and not a preference.
+         They carry .mode-panel so setMode() already knows how to switch them. -->
+    <div class="always-on">
+      <div class="mode-panel" data-for="password">
         <div class="field">
-          <label for="symbols-override">Use these symbols instead</label>
-          <input type="text" id="symbols-override" class="text-input" autocomplete="off" spellcheck="false">
-          <p class="hint">Leave empty to use the built-in set of 28. It contains no quotes, backslashes, backticks or spaces, so the result pastes cleanly into form fields and spreadsheets. Shells will still reinterpret characters like <code>$</code> and <code>&amp;</code>, so paste into a password manager rather than a command line.</p>
+          <label for="length">Length</label>
+          <div class="field-row">
+            <input type="range" id="length" min="4" max="128" step="1" value="20">
+            <input type="number" id="length-number" min="4" max="128" step="1" value="20" aria-label="Length, in characters">
+          </div>
         </div>
-      </details>
-    </div>
-
-    <!-- ------------------------------------------------ passphrase -->
-    <div class="mode-panel" data-for="passphrase" hidden>
-      <div class="field">
-        <label for="words">Words</label>
-        <div class="field-row">
-          <input type="range" id="words" min="3" max="12" step="1" value="6">
-          <input type="number" id="words-number" min="3" max="12" step="1" value="6" aria-label="Number of words">
-        </div>
-        <p class="hint" id="wordlist-note">&mdash;</p>
       </div>
 
-      <div class="field">
-        <label for="separator">Separator</label>
-        <select id="separator" class="text-input"></select>
+      <div class="mode-panel" data-for="passphrase" hidden>
+        <div class="field">
+          <label for="words">Words</label>
+          <div class="field-row">
+            <input type="range" id="words" min="3" max="12" step="1" value="6">
+            <input type="number" id="words-number" min="3" max="12" step="1" value="6" aria-label="Number of words">
+          </div>
+        </div>
       </div>
 
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="capitalize">
-          <span>Random capitalisation<small>a fair coin per word, so +1 bit each</small></span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="append-digit">
-          <span>Append a random digit<small>+3.3 bits</small></span>
-        </label>
-      </fieldset>
+      <div class="mode-panel" data-for="pin" hidden>
+        <div class="field">
+          <label for="pin-length">Digits</label>
+          <div class="field-row">
+            <input type="range" id="pin-length" min="4" max="12" step="1" value="6">
+            <input type="number" id="pin-length-number" min="4" max="12" step="1" value="6" aria-label="Number of digits">
+          </div>
+        </div>
+      </div>
+
+      <div class="mode-panel" data-for="custom" hidden>
+        <div class="field">
+          <label for="custom-length">Length</label>
+          <div class="field-row">
+            <input type="range" id="custom-length" min="1" max="128" step="1" value="20">
+            <input type="number" id="custom-length-number" min="1" max="128" step="1" value="20" aria-label="Length, in characters">
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- ------------------------------------------------ pin -->
-    <div class="mode-panel" data-for="pin" hidden>
-      <div class="field">
-        <label for="pin-length">Digits</label>
-        <div class="field-row">
-          <input type="range" id="pin-length" min="4" max="12" step="1" value="6">
-          <input type="number" id="pin-length-number" min="4" max="12" step="1" value="6" aria-label="Number of digits">
+    <details class="adjust">
+      <summary>Adjust</summary>
+
+      <!-- ------------------------------------------------ password -->
+      <div class="mode-panel" data-for="password">
+        <fieldset class="toggles">
+          <legend>Character types</legend>
+          <label class="toggle">
+            <input type="checkbox" id="use-lower" checked>
+            <span>Lowercase</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="use-upper" checked>
+            <span>Uppercase</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="use-digits" checked>
+            <span>Digits</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="use-symbols" checked>
+            <span>Symbols</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="require-each" checked>
+            <span>One of each type<small class="keep">guaranteed, not probable</small></span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="no-repeat">
+            <span>No repeated characters<small class="keep">caps length at the alphabet size</small></span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="exclude-ambiguous">
+            <span>Drop look-alikes<small class="keep" id="ambiguous-list">&mdash;</small></span>
+          </label>
+        </fieldset>
+
+        <div class="field">
+          <label for="exclude">Also exclude these characters</label>
+          <input type="text" id="exclude" class="text-input" placeholder="e.g. &quot;' \  quotes and spaces" autocomplete="off" spellcheck="false">
         </div>
+
+        <details class="advanced">
+          <summary>Fine-tune the symbol set</summary>
+          <div class="field">
+            <label for="symbols-override">Use these symbols instead</label>
+            <input type="text" id="symbols-override" class="text-input" autocomplete="off" spellcheck="false">
+            <p class="hint">Empty uses the built-in 28.</p>
+          </div>
+        </details>
+      </div>
+
+      <!-- ------------------------------------------------ passphrase -->
+      <div class="mode-panel" data-for="passphrase" hidden>
+        <div class="field">
+          <label for="separator">Separator</label>
+          <select id="separator" class="text-input"></select>
+        </div>
+
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="capitalize">
+            <span>Random capitalisation</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="append-digit">
+            <span>Append a random digit</span>
+          </label>
+        </fieldset>
+      </div>
+
+      <!-- ------------------------------------------------ pin -->
+      <div class="mode-panel" data-for="pin" hidden>
         <p class="hint">A 6-digit PIN has about 20 bits. Fine for a phone keypad with a lockout; not fine for anything else.</p>
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="pin-no-repeat">
+            <span>No repeated digits</span>
+          </label>
+        </fieldset>
       </div>
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="pin-no-repeat">
-          <span>No repeated digits</span>
-        </label>
-      </fieldset>
-    </div>
 
-    <!-- ------------------------------------------------ custom -->
-    <div class="mode-panel" data-for="custom" hidden>
-      <div class="field">
-        <label for="custom-alphabet">Characters to draw from</label>
-        <textarea id="custom-alphabet" class="text-input" rows="3" spellcheck="false" autocomplete="off" placeholder="Paste any characters you like, e.g. ABCDEFGHJKMNPQRSTUVWXYZ23456789"></textarea>
-        <p class="hint" id="custom-hint">Duplicates are removed automatically. Emoji and accents are counted as one character each.</p>
-      </div>
-      <div class="field">
-        <label for="custom-length">Length</label>
-        <div class="field-row">
-          <input type="range" id="custom-length" min="1" max="128" step="1" value="20">
-          <input type="number" id="custom-length-number" min="1" max="128" step="1" value="20" aria-label="Length, in characters">
+      <!-- ------------------------------------------------ custom -->
+      <div class="mode-panel" data-for="custom" hidden>
+        <div class="field">
+          <label for="custom-alphabet">Characters to draw from</label>
+          <textarea id="custom-alphabet" class="text-input" rows="3" spellcheck="false" autocomplete="off" placeholder="Paste any characters you like, e.g. ABCDEFGHJKMNPQRSTUVWXYZ23456789"></textarea>
+          <p class="hint" id="custom-hint">Emoji count as one character.</p>
         </div>
+        <fieldset class="toggles">
+          <legend>Rules</legend>
+          <label class="toggle">
+            <input type="checkbox" id="custom-no-repeat">
+            <span>No repeated characters</span>
+          </label>
+        </fieldset>
       </div>
-      <fieldset class="toggles">
-        <legend>Rules</legend>
-        <label class="toggle">
-          <input type="checkbox" id="custom-no-repeat">
-          <span>No repeated characters</span>
-        </label>
-      </fieldset>
-    </div>
+    </details>
   </section>
+</main>
 
-  <section class="panel" aria-labelledby="trust-heading">
-    <div class="panel-head">
-      <h2 id="trust-heading">Receipts</h2>
-      <span class="panel-note">live, not a promise</span>
-    </div>
+<footer class="footer">
+  <p class="strip">
+    <span class="strip-item" id="strip-network"><span class="strip-value">0</span> network calls</span>
+    <span class="strip-item" id="strip-storage"><span class="strip-value">0</span> storage writes</span>
+  </p>
+
+  <details class="disclosure">
+    <summary>Verify this page</summary>
 
     <p class="lede">
       This page is one HTML file with no dependencies. There is no server to send
@@ -1450,6 +1879,15 @@ select.text-input {
       writes happen only when you press Copy, and are counted apart from storage
       writes so that pressing it can never look like saving something.
     </p>
+
+    <table class="crack">
+      <caption>
+        Time to crack, if an attacker already holds the hash and is allowed to guess
+        at a fixed rate. Guesses are independent, so a human who reuses a pattern
+        beats these numbers.
+      </caption>
+      <tbody id="crack-rows"></tbody>
+    </table>
 
     <details class="disclosure">
       <summary>Channels being watched</summary>
@@ -1491,43 +1929,35 @@ select.text-input {
       </div>
       <p class="notice" id="digest-result" role="status"></p>
     </details>
-  </section>
-</main>
+  </details>
 
-<footer class="colophon">
-  <div class="colophon-grid">
-    <section>
-      <h2>What this is not</h2>
-      <p>
-        Not a password manager. It remembers nothing, on purpose: no history, no
-        favourites, no settings, nothing in localStorage, no cookies, no service
-        worker. Close the tab and the password is gone. Write it down, or put it
-        in a manager you trust.
-      </p>
-    </section>
-    <section>
-      <h2>What it cannot stop</h2>
-      <p>
-        A browser extension with page access, a compromised OS, a keylogger, a
-        shoulder-surfer, a screen recording, or a clipboard manager that keeps
-        what you copy. Nothing rendered on a screen is private from the machine
-        that renders it.
-      </p>
-    </section>
-    <section>
-      <h2>How to check us</h2>
-      <p>
-        Open the network tab and reload: zero requests. Open the application tab:
-        empty. Read the file &mdash; it is the program and its own source. Or run
-        <code>npm run verify</code> in a clone.
-      </p>
-    </section>
-  </div>
-  <p class="legal">
-    Passphrase mode uses <span id="wordlist-credit">the EFF Long Wordlist</span>.
-    Character sets are ASCII only. No analytics, no cookies, no fonts, no CDN, no
-    dependencies, no build step required to run this page.
-  </p>
+  <details class="disclosure">
+    <summary>What this is not</summary>
+
+    <p class="colophon">
+      Not a password manager. It remembers nothing, on purpose: no history, no
+      favourites, no settings, nothing in localStorage, no cookies, no service
+      worker. Close the tab and the password is gone. Write it down, or put it
+      in a manager you trust.
+    </p>
+    <p class="colophon">
+      What it cannot stop: a browser extension with page access, a compromised
+      OS, a keylogger, a shoulder-surfer, a screen recording, or a clipboard
+      manager that keeps what you copy. Nothing rendered on a screen is private
+      from the machine that renders it.
+    </p>
+    <p class="colophon">
+      How to check us: open the network tab and reload: zero requests. Open the
+      application tab: empty. Read the file &mdash; it is the program and its own
+      source. Or run <code>npm run verify</code> in a clone.
+    </p>
+
+    <p class="legal">
+      Passphrase mode uses <span id="wordlist-credit">the EFF Long Wordlist</span>.
+      Character sets are ASCII only. No analytics, no cookies, no fonts, no CDN, no
+      dependencies, no build step required to run this page.
+    </p>
+  </details>
 </footer>
 
 <noscript>
@@ -1543,13 +1973,13 @@ select.text-input {
 'use strict';
 
 /* passgen 1.0.0 -- generated by tools/build.mjs, do not edit by hand.
- * source digest: 52ce7aa5b3d23f9ac27ff562dfc356d819ddc81a2dc9043c05f714d909c771ce
+ * source digest: 2187a2371262aabd09197393196dfc2ebae4458c5e1765c1c41010741c7a2ce3
  * Edit src/ and run: npm run build
  */
 var PG = window.PG = window.PG || {};
 PG.BUILD = {
   version: "1.0.0",
-  sourceDigest: "52ce7aa5b3d23f9ac27ff562dfc356d819ddc81a2dc9043c05f714d909c771ce",
+  sourceDigest: "2187a2371262aabd09197393196dfc2ebae4458c5e1765c1c41010741c7a2ce3",
   builtFrom: ["lib/random.js","lib/entropy.js","lib/generators.js","lib/wordlist.js","lib/integrity.js","lib/controls.js","app.js","styles.css"],
 };
 
@@ -1657,15 +2087,6 @@ PG.BUILD = {
   var LOG10_2 = Math.log10(2);
   var YEAR_SECONDS = 31557600; // Julian year, 365.25 days
   var AGE_OF_UNIVERSE_SECONDS = 4.35e17;
-
-  var SCALES = [
-    [1e3, 'thousand'],
-    [1e6, 'million'],
-    [1e9, 'billion'],
-    [1e12, 'trillion'],
-    [1e15, 'quadrillion'],
-    [1e18, 'quintillion'],
-  ];
 
   /**
    * Attack models shown to the user. These are estimates about someone else's
@@ -1825,32 +2246,6 @@ PG.BUILD = {
     return '10^' + Math.floor(log10s - Math.log10(YEAR_SECONDS)) + ' years';
   }
 
-  /** "1,024", "1.05 million", "1.1 x 10^39" -- a readable size for 2^bits. */
-  function formatCount(bits) {
-    if (bits <= 0) return '1';
-    var value = Math.pow(2, bits);
-    if (!isFinite(value)) return '2^' + Math.round(bits);
-
-    // Below a million, the exact integer is clearer than "1.02 thousand".
-    if (value < 1e6) return withCommas(Math.round(value));
-
-    var chosen = null;
-    for (var i = 0; i < SCALES.length; i++) {
-      if (value >= SCALES[i][0]) chosen = SCALES[i];
-    }
-
-    // Past a quintillion, naming the number helps nobody. The exact bit count is
-    // on screen right next to this.
-    if (!chosen || value >= 1e21) {
-      var exponent = Math.floor(Math.log10(value));
-      return String(round2(value / Math.pow(10, exponent))) + ' × 10^' + exponent;
-    }
-
-    var scaled = value / chosen[0];
-    var text = scaled < 10 ? String(round2(scaled)) : withCommas(Math.round(scaled));
-    return text + ' ' + chosen[1];
-  }
-
   /** Coarse label for the strength meter. */
   function tier(bits) {
     if (bits < 28) return { level: 0, label: 'very weak' };
@@ -1875,13 +2270,10 @@ PG.BUILD = {
   }
 
   PG.entropy = {
-    ATTACK_MODELS: ATTACK_MODELS,
-    logSequenceCount: logSequenceCount,
     bitsForClasses: bitsForClasses,
     bitsForPassphrase: bitsForPassphrase,
     log10SecondsToCrack: log10SecondsToCrack,
     formatDurationFromLog10: formatDurationFromLog10,
-    formatCount: formatCount,
     tier: tier,
     crackTimeRows: crackTimeRows,
   };
@@ -2239,10 +2631,8 @@ PG.BUILD = {
     CHARSETS: CHARSETS,
     AMBIGUOUS: AMBIGUOUS,
     SEPARATORS: SEPARATORS,
-    MAX_CUSTOM_ALPHABET: MAX_CUSTOM_ALPHABET,
-    GeneratorError: GeneratorError,
+    // Read by controls.js to report how large a custom alphabet is.
     uniqueChars: uniqueChars,
-    filterChars: filterChars,
     buildAlphabet: buildAlphabet,
     generatePassword: generatePassword,
     generatePassphrase: generatePassphrase,
@@ -2823,7 +3213,6 @@ PG.BUILD = {
   };
 
   PG.integrity = {
-    PROBE_URL: PROBE_URL,
     state: state,
     init: init,
     snapshot: snapshot,
@@ -2844,9 +3233,9 @@ PG.BUILD = {
  * src/app.js is wiring: it reads elements, calls the generators, writes results.
  * Between those two halves sits a layer that is neither -- the rules about how
  * long a password may be given the alphabet currently selected, what a named
- * preset is made of, and which panel a mode shows. All of it is arithmetic over
- * an options object. None of it needs a document, so all of it lives here and
- * all of it is tested without one.
+ * preset is made of, which panel a mode shows, and what the page says it just
+ * made. All of it is arithmetic over an options object. None of it needs a
+ * document, so all of it lives here and all of it is tested without one.
  *
  * What stays in app.js is the part that genuinely cannot be separated: reading a
  * checkbox, writing a range input's max attribute, and the painting of results.
@@ -2865,9 +3254,14 @@ PG.BUILD = {
    * Every length control, paired with the number box beside it and the library
    * limits it belongs to. One list, because forgetting a pair is exactly how a
    * preset ends up inheriting the previous preset's ceiling.
+   *
+   * All four pairs are here, including the passphrase word count. Its max never
+   * narrows today, but the four sliders now share one always-visible slot, and a
+   * fifth rule applied to three of four would be the inconsistency.
    */
   var RANGE_PAIRS = [
     { range: 'length', number: 'length-number', limits: LIMITS.password },
+    { range: 'words', number: 'words-number', limits: LIMITS.passphrase },
     { range: 'pin-length', number: 'pin-length-number', limits: LIMITS.pin },
     { range: 'custom-length', number: 'custom-length-number', limits: LIMITS.custom },
   ];
@@ -3040,9 +3434,116 @@ PG.BUILD = {
     };
   }
 
-  /** Every preset name, for a test that checks the table has not lost one. */
-  function presetNames() {
-    return Object.keys(PRESETS);
+  /**
+   * The length a box currently holds, or null when it does not hold one yet.
+   *
+   * Empty, a lone "-", a half-deleted field: all the states a box passes
+   * through on the way to a number, and all of them null, so the caller leaves
+   * the slider alone instead of guessing. `Number` rather than `parseInt`
+   * because a number input accepts exponent notation -- Chromium keeps `e` in
+   * the value as you type it -- and parseInt("1e3") is 1.
+   */
+  function typedLength(raw) {
+    var text = String(raw === null || raw === undefined ? '' : raw).trim();
+    if (text === '') return null;
+    var value = Number(text);
+    if (!isFinite(value)) return null;
+    return Math.trunc(value);
+  }
+
+  /**
+   * What the box should show once the user has finished with it: the number
+   * they typed, pulled inside [min, max].
+   *
+   * `current` is what the slider holds now, and is what an unreadable box falls
+   * back to -- a cleared or half-typed field must not move the slider, but it
+   * must not be left sitting on screen either. It is read through typedLength
+   * rather than compared as it arrived, because the caller has a range input's
+   * `.value` -- a string -- and 20 is not the same as "20"; comparing them raw
+   * would report every settled box as a change and regenerate on every blur.
+   *
+   * `changed` is true only when the slider must move, so the caller can skip a
+   * regenerate for a box that was corrected back to where it already was. blur
+   * and change both fire, so settle runs twice and must be idempotent.
+   */
+  function settledLength(raw, min, max, current) {
+    var typed = typedLength(raw);
+    var held = typedLength(current);
+    if (held === null) held = min;
+    if (typed === null) return { value: held, changed: false };
+    var settled = Math.max(min, Math.min(max, typed));
+    return { value: settled, changed: settled !== held };
+  }
+
+  // --------------------------------------------------------------- the hinge
+
+  /** How many of what the result is made of. */
+  function unitCount(result) {
+    if (result.kind === 'passphrase') return result.spec.words;
+    return result.spec.length;
+  }
+
+  /** What those are called. Singular; specText() pluralises. */
+  function unitNoun(result) {
+    if (result.kind === 'passphrase') return 'word';
+    if (result.kind === 'pin') return 'digit';
+    return 'character';
+  }
+
+  /** Locale-independent, so the hinge reads the same in Node and in a browser. */
+  function withCommas(value) {
+    return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  /**
+   * The one line under the plate: what was actually produced.
+   *
+   * "20 characters · lowercase + uppercase + digits + symbols · one of each
+   * type". It names the character classes rather than a bare alphabet size,
+   * because it sits directly under a plate whose characters are coloured by
+   * exactly those classes -- so the line is checked against the checkboxes above
+   * it, and the whole form can go behind one disclosure without losing it. That
+   * makes its accuracy load-bearing in a way the old wording ("alphabet of 90")
+   * never was, which is why it is here and tested here rather than painted in
+   * app.js.
+   *
+   * `wordlistSize` is passed in rather than read from the page: this file has no
+   * document, and the caller's word list is the only one that exists.
+   */
+  function specText(result, wordlistSize) {
+    var parts = [];
+    var units = unitCount(result);
+    parts.push(units + ' ' + unitNoun(result) + (units === 1 ? '' : 's'));
+
+    if (result.kind === 'passphrase') {
+      parts.push(wordlistSize
+        ? withCommas(wordlistSize) + '-word EFF list'
+        : 'word list unavailable');
+      if (result.spec.capitalize) parts.push('capitalised at random');
+      if (result.spec.appendDigit) parts.push('digit appended');
+      return parts.join(' · ');
+    }
+
+    var classes = result.alphabet && result.alphabet.classes ? result.alphabet.classes : null;
+    if (classes && classes.length) {
+      parts.push(classes.map(function (cls) {
+        return String(cls.label || cls.key).toLowerCase();
+      }).join(' + '));
+    } else {
+      parts.push('alphabet of ' + result.spec.alphabetSize);
+    }
+
+    // Only a password has per-class guarantees, and only worth saying when
+    // there is more than one class to guarantee.
+    if (result.kind === 'password' && classes && classes.length > 1) {
+      parts.push('one of each type');
+    }
+    if (result.spec.distinct) parts.push('no repeats');
+    if (result.alphabet && result.alphabet.removed && result.alphabet.removed.length) {
+      parts.push('removed ' + result.alphabet.removed.join(' '));
+    }
+
+    return parts.join(' · ');
   }
 
   /**
@@ -3084,14 +3585,15 @@ PG.BUILD = {
   PG.controls = {
     MODES: MODES,
     RANGE_PAIRS: RANGE_PAIRS,
-    PRESETS: PRESETS,
     kindLabel: kindLabel,
     modeState: modeState,
     lengthCeiling: lengthCeiling,
     clampToCeiling: clampToCeiling,
     relaxedCeilings: relaxedCeilings,
     presetFor: presetFor,
-    presetNames: presetNames,
+    typedLength: typedLength,
+    settledLength: settledLength,
+    specText: specText,
     normaliseDigest: normaliseDigest,
     digestVerdict: digestVerdict,
   };
@@ -3121,8 +3623,6 @@ PG.BUILD = {
     mode: 'password',
     result: null,
     bits: 0,
-    hidden: false,
-    copied: false,
   };
 
   // ------------------------------------------------------------------ dom
@@ -3151,6 +3651,67 @@ PG.BUILD = {
     if (!node) return fallback;
     var raw = node.value;
     return raw === '' ? fallback : raw;
+  }
+
+  // ------------------------------------------------------------------- flash
+
+  var FLASH_MS = 2500;
+  var FLASH_FADE_MS = 260;
+  var flashTimer = null;
+
+  function cancelFlashTimer() {
+    if (flashTimer === null) return;
+    clearTimeout(flashTimer);
+    flashTimer = null;
+  }
+
+  /**
+   * A transient message: copied, refused, cleared.
+   *
+   * The hinge used to do this job, and paid for it -- copySecret() overwrote the
+   * spec line with "On your clipboard" and it did not come back until you
+   * regenerated, so the one line that answers "what did my slider just do?"
+   * was gone exactly when you were deciding whether to press Copy again.
+   *
+   * The node is emptied rather than removed, because a live region that is taken
+   * out of the document stops being announced, and opacity carries the fade so
+   * nothing reflows mid-transition.
+   */
+  function flash(message) {
+    var node = $('secret-flash');
+    if (!node) return;
+    cancelFlashTimer();
+
+    setText(node, message);
+    node.classList.add('is-on');
+    flashTimer = setTimeout(function () {
+      flashTimer = null;
+      hideFlash();
+    }, FLASH_MS);
+  }
+
+  /** Fade first, empty once the transition is over, so nothing jumps. */
+  function hideFlash() {
+    var node = $('secret-flash');
+    if (!node) return;
+    node.classList.remove('is-on');
+    flashTimer = setTimeout(function () {
+      flashTimer = null;
+      setText(node, '');
+    }, FLASH_FADE_MS);
+  }
+
+  /**
+   * Take a pending message down at once rather than letting it linger. Used when
+   * a new secret makes it stale: the clipboard note describes the last value, and
+   * the plate no longer holds it.
+   */
+  function clearFlash() {
+    var node = $('secret-flash');
+    if (!node) return;
+    cancelFlashTimer();
+    setText(node, '');
+    node.classList.remove('is-on');
   }
 
   // ------------------------------------------------------------------ options
@@ -3262,17 +3823,27 @@ PG.BUILD = {
     host.textContent = '';
     host.appendChild(fragment);
     host.style.setProperty('--secret-size', secretSize(value.length) + 'px');
-    host.classList.toggle('is-hidden', state.hidden);
+    // Re-trigger the settle animation. Reading offsetWidth forces the layout the
+    // class change needs; without it a second regenerate in the same tick would
+    // just re-apply a class that is already there and nothing would move.
+    host.classList.remove('is-fresh');
+    void host.offsetWidth;
+    host.classList.add('is-fresh');
     return host;
   }
 
+  /*
+   * Six buckets, stepped for the single-column card. The plate grew a step when
+   * the two panels became one, and with it the type: at 720px wide the longest
+   * bucket still leaves a line to spare at two rows for a 128-character secret.
+   */
   function secretSize(length) {
-    if (length <= 16) return 30;
-    if (length <= 24) return 26;
-    if (length <= 32) return 22;
-    if (length <= 48) return 18;
-    if (length <= 72) return 15;
-    return 13;
+    if (length <= 16) return 36;
+    if (length <= 24) return 32;
+    if (length <= 32) return 28;
+    if (length <= 48) return 24;
+    if (length <= 72) return 20;
+    return 18;
   }
 
   // ------------------------------------------------------------------ entropy
@@ -3284,57 +3855,34 @@ PG.BUILD = {
     return entropy.bitsForClasses(result.spec);
   }
 
-  function unitCount(result) {
-    if (result.kind === 'passphrase') return result.spec.words;
-    return result.spec.length;
-  }
-
-  function unitNoun(result) {
-    if (result.kind === 'passphrase') return 'word';
-    if (result.kind === 'pin') return 'digit';
-    return 'character';
-  }
-
-  function alphabetSummary(result) {
-    if (result.kind === 'passphrase') {
-      var size = PG.WORDLIST ? PG.WORDLIST.length : 0;
-      return size ? size.toLocaleString() + ' words' : 'word list';
-    }
-    if (result.kind === 'pin') return result.spec.alphabetSize + ' digits';
-    if (result.alphabet && result.alphabet.classes && result.alphabet.classes.length) {
-      return result.alphabet.size + ' (' + result.alphabet.classes
-        .map(function (c) { return c.key; })
-        .join(' ') + ')';
-    }
-    return result.spec.alphabetSize + ' characters, yours';
-  }
-
   function paintMeter(result) {
     var bits = bitsFor(result);
     state.bits = bits;
 
     var verdict = entropy.tier(bits);
-    var units = unitCount(result);
-    var noun = unitNoun(result);
 
     var verdictNode = $('strength-label');
     verdictNode.textContent = verdict.label;
     verdictNode.className = 'meter-verdict tier-' + verdict.level;
 
-    setText($('bits-label'), bits.toFixed(1) + ' bits of entropy');
+    setText($('bits-label'), bits.toFixed(1) + ' bits');
 
     var fill = $('meter-fill');
     fill.style.setProperty('--fill', Math.max(2, Math.min(100, (bits / 128) * 100)) + '%');
     fill.className = 'meter-fill tier-' + verdict.level;
+  }
 
-    setText($('stat-bits'), bits.toFixed(2) + ' bits');
-    setText($('stat-count'), entropy.formatCount(bits));
-    setText($('stat-per-char'), units > 0 ? (bits / units).toFixed(2) + ' bits / ' + noun : '—');
-    setText($('stat-alphabet'), alphabetSummary(result));
-
+  /**
+   * The crack table, which no longer sits under the meter but has not gone
+   * anywhere either: it is inside the Verify this page disclosure, and it is
+   * still entropy.crackTimeRows() doing the arithmetic. Kept in its own function
+   * so that moving it out of view did not also mean painting it somewhere else.
+   */
+  function paintCrackRows(bits) {
     var rows = entropy.crackTimeRows(bits);
     var body = $('crack-rows');
     body.textContent = '';
+    show(document.querySelector('.crack'), true);
     rows.forEach(function (row) {
       var tr = document.createElement('tr');
 
@@ -3355,29 +3903,6 @@ PG.BUILD = {
       tr.appendChild(time);
       body.appendChild(tr);
     });
-  }
-
-  function describeResult(result) {
-    var parts = [];
-    var units = unitCount(result);
-    parts.push(units + ' ' + unitNoun(result) + (units === 1 ? '' : 's'));
-
-    if (result.kind === 'passphrase') {
-      var listSize = PG.WORDLIST ? PG.WORDLIST.length : 0;
-      parts.push(listSize.toLocaleString() + '-word EFF list');
-      if (result.spec.capitalize) parts.push('capitalised at random');
-      if (result.spec.appendDigit) parts.push('digit appended');
-    } else {
-      parts.push('alphabet of ' + result.spec.alphabetSize);
-      if (result.spec.distinct) parts.push('no repeats');
-      if (result.kind === 'password' && result.alphabet && result.alphabet.classes.length > 1) {
-        parts.push('at least one of each type');
-      }
-      if (result.alphabet && result.alphabet.removed && result.alphabet.removed.length) {
-        parts.push('removed ' + result.alphabet.removed.join(' '));
-      }
-    }
-    return parts.join(' · ');
   }
 
   // ------------------------------------------------------------------ generate
@@ -3403,23 +3928,29 @@ PG.BUILD = {
       $('strength-label').className = 'meter-verdict';
       setText($('bits-label'), '—');
       $('meter-fill').style.setProperty('--fill', '0%');
-      ['stat-bits', 'stat-count', 'stat-per-char', 'stat-alphabet'].forEach(function (id) {
-        setText($(id), '—');
-      });
       $('crack-rows').textContent = '';
+      // The caption promises a table. With no rows under it the promise is
+      // broken, so the whole table goes rather than leaving the heading
+      // stranded above an empty box.
+      show(document.querySelector('.crack'), false);
       return;
     }
 
     show($('secret-error'), false);
     state.result = result;
-    state.copied = false;
     show($('btn-clear-clip'), false);
     $('btn-copy').textContent = 'Copy';
+    clearFlash();
 
     paintSecret(result);
     paintMeter(result);
-    setText($('secret-status'), describeResult(result));
-    setText($('secret-kind'), result.kind === 'custom' ? 'custom password' : result.kind);
+    paintCrackRows(state.bits);
+
+    setText($('secret-status'), controls.specText(result, PG.WORDLIST ? PG.WORDLIST.length : 0));
+
+    // A screen reader announces the plate, so it has to be told what kind of
+    // thing is on it: without this every mode was announced as a password.
+    $('secret').setAttribute('aria-label', 'Generated ' + controls.kindLabel(state.mode));
   }
 
   // ------------------------------------------------------------------ clipboard
@@ -3452,13 +3983,12 @@ PG.BUILD = {
       : Promise.resolve(legacyCopy(text));
 
     return viaClipboard.then(function (ok) {
-      state.copied = ok;
       if (ok) {
         $('btn-copy').textContent = 'Copied';
         show($('btn-clear-clip'), true);
-        setText($('secret-status'), 'On your clipboard. This page has no memory of it beyond this tab.');
+        flash('On your clipboard. This page has no memory of it beyond this tab.');
       } else {
-        setText($('secret-status'), 'The browser refused clipboard access. Select the text and copy it by hand.');
+        flash('The browser refused clipboard access. Select the text and copy it by hand.');
       }
       renderIntegrity();
       return ok;
@@ -3467,20 +3997,19 @@ PG.BUILD = {
 
   function clearClipboard() {
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      setText($('secret-status'), 'This browser does not allow the page to clear the clipboard.');
+      flash('This browser does not allow the page to clear the clipboard.');
       return Promise.resolve(false);
     }
     return navigator.clipboard.writeText('').then(
       function () {
         $('btn-copy').textContent = 'Copy';
         show($('btn-clear-clip'), false);
-        state.copied = false;
-        setText($('secret-status'), 'Clipboard cleared. Some clipboard managers keep their own history.');
+        flash('Clipboard cleared. Some clipboard managers keep their own history.');
         renderIntegrity();
         return true;
       },
       function () {
-        setText($('secret-status'), 'The browser would not let the page clear the clipboard.');
+        flash('The browser would not let the page clear the clipboard.');
         return false;
       }
     );
@@ -3517,33 +4046,32 @@ PG.BUILD = {
     setText($('clip-writes'), String(figures.clipboardWrites));
     setText($('counter-origin'), originLabel(snap));
 
-    var netBadge = $('badge-network');
-    netBadge.textContent = '';
-    var netValue = document.createElement('span');
-    netValue.className = 'badge-value';
-    netValue.textContent = String(figures.networkTotal);
-    netBadge.appendChild(netValue);
-    netBadge.appendChild(document.createTextNode(
-      figures.networkTotal === 1 ? ' network call' : ' network calls'
-    ));
-    netBadge.classList.toggle('badge-alarm', figures.networkTotal > 0);
-
-    var storeBadge = $('badge-storage');
-    storeBadge.textContent = '';
-    var storeValue = document.createElement('span');
-    storeValue.className = 'badge-value';
-    storeValue.textContent = String(figures.storageWrites);
-    storeBadge.appendChild(storeValue);
-    storeBadge.appendChild(document.createTextNode(
-      figures.storageWrites === 1 ? ' storage write' : ' storage writes'
-    ));
-    storeBadge.classList.toggle('badge-alarm', figures.storageWrites > 0);
+    paintCounter($('strip-network'), figures.networkTotal, 'network call');
+    paintCounter($('strip-storage'), figures.storageWrites, 'storage write');
 
     $('net-total').classList.toggle('counter-alarm', figures.networkTotal > 0);
     $('store-total').classList.toggle('counter-alarm', figures.storageWrites > 0);
 
     paintChannels(snap);
     paintClock(snap);
+  }
+
+  /**
+   * One item of the footer strip. Rebuilt rather than written into, because the
+   * label is singular for exactly one call and the figure is the part that has to
+   * stay tabular.
+   */
+  function paintCounter(node, count, noun) {
+    if (!node) return;
+    node.textContent = '';
+
+    var value = document.createElement('span');
+    value.className = 'strip-value';
+    value.textContent = String(count);
+    node.appendChild(value);
+    node.appendChild(document.createTextNode(' ' + (count === 1 ? noun : noun + 's')));
+
+    node.classList.toggle('strip-alarm', count > 0);
   }
 
   /**
@@ -3729,40 +4257,86 @@ PG.BUILD = {
 
   // ------------------------------------------------------------------ controls
 
+  /**
+   * Keep a range slider and the number box beside it showing the same thing.
+   *
+   * The slider is the source of truth -- readOptions() reads it, and the presets
+   * and ceiling logic write it -- so the box is a mirror of the slider and never
+   * the other way round. Which means the one rule this function exists to hold
+   * is: never write to the box while the user is editing it. A clamp written back
+   * mid-keystroke refills a cleared field and turns a value the user is still
+   * typing into something they did not ask for, and no number that starts with a
+   * digit at or below min-1 is ever reachable again. A mirror does not get
+   * corrected mid-edit; it gets corrected when the edit ends.
+   *
+   * Both halves are arithmetic over the raw field value, so both live in
+   * controls.js and are tested without a browser: typedLength() for "is there a
+   * number here yet", settledLength() for "what should the box say now that the
+   * user has stopped".
+   */
   function linkRange(rangeId, numberId, onChange) {
     var range = $(rangeId);
     var number = $(numberId);
 
-    function push(fromRange) {
-      var min = parseInt(range.min, 10);
-      var max = parseInt(range.max, 10);
-      var next = parseInt(fromRange ? range.value : number.value, 10);
-      if (!isFinite(next)) next = min;
-      if (next < min) next = min;
-      if (next > max) next = max;
-      range.value = String(next);
-      number.value = String(next);
-      if (onChange) onChange(next);
+    function bounds() {
+      return { min: parseInt(range.min, 10), max: parseInt(range.max, 10) };
     }
 
-    range.addEventListener('input', function () { push(true); });
-    number.addEventListener('input', function () { push(false); });
-    number.addEventListener('blur', function () { push(false); });
-    return push;
+    function toSlider(value) {
+      range.value = String(value);
+      if (onChange) onChange(value);
+    }
+
+    // The slider is never mid-word, so mirroring into the box is safe.
+    range.addEventListener('input', function () {
+      var next = parseInt(range.value, 10);
+      if (!isFinite(next)) next = bounds().min;
+      number.value = String(next);
+      toSlider(next);
+    });
+
+    // The box is. Write nothing back to it; an unfinished or out-of-range
+    // value moves nothing at all, and a finished one is settled on blur.
+    number.addEventListener('input', function () {
+      var b = bounds();
+      var typed = controls.typedLength(number.value);
+      if (typed === null || typed < b.min || typed > b.max) return;
+      toSlider(typed);
+    });
+
+    function settle() {
+      var b = bounds();
+      var result = controls.settledLength(number.value, b.min, b.max, range.value);
+      if (number.value !== String(result.value)) number.value = String(result.value);
+      if (result.changed) toSlider(result.value);
+    }
+
+    number.addEventListener('change', settle);
+    number.addEventListener('blur', settle);
+    number.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') number.blur();
+    });
   }
 
+  /**
+   * Switch mode.
+   *
+   * `.mode-panel` is the whole contract: the buttons carry aria-checked and the
+   * panels carry visibility, and both compare a data attribute against the active
+   * mode. The always-on length slot reuses the class on purpose, so the four
+   * length pairs switch with the same loop and need no second rule.
+   */
   function setMode(mode) {
     state.mode = mode;
     var next = controls.modeState(mode);
 
-    Array.prototype.forEach.call(document.querySelectorAll('.mode'), function (button) {
+    Array.from(document.querySelectorAll('.mode')).forEach(function (button) {
       button.setAttribute('aria-checked', next.isSelected(button.dataset.mode) ? 'true' : 'false');
     });
-    Array.prototype.forEach.call(document.querySelectorAll('.mode-panel'), function (panel) {
+    Array.from(document.querySelectorAll('.mode-panel')).forEach(function (panel) {
       show(panel, next.showsPanel(panel.dataset.for));
     });
 
-    setText($('secret-kind'), next.kind);
     applyLengthCeiling();
     generate();
   }
@@ -3845,14 +4419,6 @@ PG.BUILD = {
     setMode(preset.mode);
   }
 
-  function toggleHidden() {
-    state.hidden = !state.hidden;
-    var button = $('btn-reveal');
-    button.setAttribute('aria-pressed', state.hidden ? 'true' : 'false');
-    setText(button, state.hidden ? 'Reveal' : 'Hide');
-    $('secret').classList.toggle('is-hidden', state.hidden);
-  }
-
   /**
    * The policy the browser actually parsed, read back out of the document.
    *
@@ -3891,13 +4457,7 @@ PG.BUILD = {
     });
     select.value = 'dash';
 
-    setText($('symbol-count'), generators.CHARSETS.symbols.length + ' characters');
     setText($('ambiguous-list'), 'removes ' + Array.from(generators.AMBIGUOUS).join(' '));
-
-    var size = PG.WORDLIST ? PG.WORDLIST.length : 0;
-    setText($('wordlist-note'), size
-      ? size.toLocaleString() + ' words, ' + Math.log2(size).toFixed(2) + ' bits each. Words may repeat.'
-      : 'word list unavailable');
     setText($('wordlist-credit'), 'the EFF Long Wordlist by Joseph Bonneau, CC BY 3.0 (eff.org/dice)');
     setText($('source-digest'), BUILD.sourceDigest);
 
@@ -3930,19 +4490,17 @@ PG.BUILD = {
       if (node.tagName === 'SELECT') node.addEventListener('change', generate);
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('.mode'), function (button) {
+    Array.from(document.querySelectorAll('.mode')).forEach(function (button) {
       button.addEventListener('click', function () { setMode(button.dataset.mode); });
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (chip) {
+    Array.from(document.querySelectorAll('.chip')).forEach(function (chip) {
       chip.addEventListener('click', function () { applyPreset(chip.dataset.preset); });
     });
 
     $('btn-regenerate').addEventListener('click', generate);
     $('btn-copy').addEventListener('click', copySecret);
     $('btn-clear-clip').addEventListener('click', clearClipboard);
-    $('btn-reveal').addEventListener('click', toggleHidden);
-    $('btn-print').addEventListener('click', function () { window.print(); });
     $('btn-selftest').addEventListener('click', runSelfTest);
     $('btn-digest').addEventListener('click', compareDigest);
     $('digest-input').addEventListener('keydown', function (event) {
@@ -3959,8 +4517,28 @@ PG.BUILD = {
       }
     });
 
+    bindDisclosures();
+
     window.addEventListener('focus', renderIntegrity);
     document.addEventListener('visibilitychange', renderIntegrity);
+  }
+
+  /**
+   * Closing a <details> whose contents had focus drops focus to <body>, and a
+   * keyboard user's next Tab starts again from the top of the document. So when
+   * a panel closes around the focus, the focus goes to its summary instead --
+   * which is where they just were pressing Enter on.
+   */
+  function bindDisclosures() {
+    Array.from(document.querySelectorAll('details')).forEach(function (panel) {
+      panel.addEventListener('toggle', function () {
+        if (panel.open) return;
+        var summary = panel.querySelector('summary');
+        var active = document.activeElement;
+        if (!summary || !active) return;
+        if (active === summary || panel.contains(active)) summary.focus();
+      });
+    });
   }
 
   function init() {
@@ -3969,10 +4547,24 @@ PG.BUILD = {
     bind();
     generate();
     renderIntegrity();
-    setInterval(renderIntegrity, 750);
+    /*
+     * One second, not 750ms. Every tick tears down and rebuilds ~19 channel rows
+     * plus 6 counter nodes, and the only figure that changes is paintClock's
+     * "Page open Ns." -- which is Math.floor(elapsedMs / 1000), so it has exactly
+     * one-second granularity anyway. 750ms bought nothing and did a quarter more
+     * DOM churn than it needed to, forever, on a page whose entire claim is that
+     * nothing happens here.
+     */
+    setInterval(renderIntegrity, 1000);
 
+    // A short word list means every passphrase here is weaker than the page
+    // claims. That is not a message with an expiry, so it goes in the assertive
+    // error line rather than the flash, which is for things that have just
+    // happened and are over in a couple of seconds.
     if (PG.WORDLIST && PG.WORDLIST.length !== 7776) {
-      setText($('secret-status'), 'Warning: the embedded word list has ' + PG.WORDLIST.length + ' words, not 7776.');
+      setText($('secret-error'),
+        'Warning: the embedded word list has ' + PG.WORDLIST.length + ' words, not 7776.');
+      show($('secret-error'), true);
     }
   }
 

@@ -15,15 +15,6 @@
   var YEAR_SECONDS = 31557600; // Julian year, 365.25 days
   var AGE_OF_UNIVERSE_SECONDS = 4.35e17;
 
-  var SCALES = [
-    [1e3, 'thousand'],
-    [1e6, 'million'],
-    [1e9, 'billion'],
-    [1e12, 'trillion'],
-    [1e15, 'quadrillion'],
-    [1e18, 'quintillion'],
-  ];
-
   /**
    * Attack models shown to the user. These are estimates about someone else's
    * hardware, so they are labelled on screen rather than buried.
@@ -182,32 +173,6 @@
     return '10^' + Math.floor(log10s - Math.log10(YEAR_SECONDS)) + ' years';
   }
 
-  /** "1,024", "1.05 million", "1.1 x 10^39" -- a readable size for 2^bits. */
-  function formatCount(bits) {
-    if (bits <= 0) return '1';
-    var value = Math.pow(2, bits);
-    if (!isFinite(value)) return '2^' + Math.round(bits);
-
-    // Below a million, the exact integer is clearer than "1.02 thousand".
-    if (value < 1e6) return withCommas(Math.round(value));
-
-    var chosen = null;
-    for (var i = 0; i < SCALES.length; i++) {
-      if (value >= SCALES[i][0]) chosen = SCALES[i];
-    }
-
-    // Past a quintillion, naming the number helps nobody. The exact bit count is
-    // on screen right next to this.
-    if (!chosen || value >= 1e21) {
-      var exponent = Math.floor(Math.log10(value));
-      return String(round2(value / Math.pow(10, exponent))) + ' × 10^' + exponent;
-    }
-
-    var scaled = value / chosen[0];
-    var text = scaled < 10 ? String(round2(scaled)) : withCommas(Math.round(scaled));
-    return text + ' ' + chosen[1];
-  }
-
   /** Coarse label for the strength meter. */
   function tier(bits) {
     if (bits < 28) return { level: 0, label: 'very weak' };
@@ -232,13 +197,10 @@
   }
 
   PG.entropy = {
-    ATTACK_MODELS: ATTACK_MODELS,
-    logSequenceCount: logSequenceCount,
     bitsForClasses: bitsForClasses,
     bitsForPassphrase: bitsForPassphrase,
     log10SecondsToCrack: log10SecondsToCrack,
     formatDurationFromLog10: formatDurationFromLog10,
-    formatCount: formatCount,
     tier: tier,
     crackTimeRows: crackTimeRows,
   };

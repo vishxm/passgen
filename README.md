@@ -33,6 +33,14 @@ npm run verify         # audit the built file against its own claims
 npm run check          # build + test + verify
 ```
 
+There is one design, and one stylesheet: `src/styles.css`. It opens in two halves
+&mdash; a structural layer that keeps the page working whatever it looks like, and
+the drawing itself &mdash; and the order of the two is load-bearing. The page draws
+a password the way a working drawing would: mono throughout, cyan-blue ink on
+paper-white stock, a 24px graph-paper grid, corner ticks at the drawing's extent,
+and the strength gauge as a dimension line with witness ticks and a break at the
+60-bit mark rather than a bar that fills up.
+
 Requires **Node 22+** for the tooling. The page itself needs nothing but a
 browser.
 
@@ -115,6 +123,44 @@ another tick in that table.
 
 ---
 
+## One card, in causal order
+
+The whole interface is one card, 720px wide, and it reads in the order you
+actually use it:
+
+1. **What kind of thing** &mdash; four modes, then four presets.
+2. **The thing** &mdash; the plate.
+3. **What it is** &mdash; one line under the plate naming the count and the
+   character classes it drew from. This is the *hinge*, and it is the only
+   readout left on screen: it sits between the plate and its controls, so it
+   answers "what did my slider just do?" without being overwritten by the next
+   action. `controls.specText()` writes it and `test/controls.test.mjs` asserts
+   it, because a plate whose glyphs are coloured by class and a line that names
+   classes have to agree.
+4. **What to do with it** &mdash; Regenerate and Copy, split the width equally.
+5. **What it cost you** &mdash; the verdict, the bit count, the gauge.
+6. **How long it is** &mdash; the one control that is always visible. All four
+   modes have a length pair; which one is right is a fact about the mode, not a
+   preference.
+7. **Everything else** &mdash; behind one `▸ Adjust`.
+
+Everything the old two-panel layout spread around is still in the file, one
+disclosure away: `▸ Adjust` holds the character-type toggles, the rules, the
+exclusions, the symbol override and the passphrase and custom alphabets;
+`Verify this page` holds the six counters, the watched channels, the policy in
+force, the self-test and the crack-time table; `What this is not` holds the
+honest-limitations prose. `<details>` content stays in the DOM, so every counter
+keeps its element id and none of the `renderIntegrity` wiring changed.
+
+Two rules govern what may go into `▸ Adjust`. **Delete restatements, keep
+consequences**: a toggle's sub-label is hidden unless it says something the
+label cannot (`caps length at the alphabet size`), so "Digits / 0&ndash;9 &middot;
+10" is gone. And **the hinge is permanent, the flash is not**: Copy writes to a
+separate line that fades after about two and a half seconds, because it used to
+overwrite the spec line, which then did not come back until you regenerated.
+
+---
+
 ## The four modes
 
 | Mode | What it makes | Options |
@@ -166,14 +212,15 @@ script without rebuilding and the page stops working. That is the tamper check.
 
 ### 2. The page counts its own behaviour
 
-The **Receipts** panel is not a marketing claim, it is instrumentation installed
-on the APIs before anything else runs: `fetch`, `XMLHttpRequest`, `WebSocket`,
-`EventSource`, `Worker`, `SharedWorker`, `RTCPeerConnection`, `sendBeacon`,
-`localStorage`, `sessionStorage`, `document.cookie`, `indexedDB`, the Cache API
-and the clipboard. Alongside it, the page listens for the browser's own
-`securitypolicyviolation` events, which is how a *blocked* request gets counted.
+The **Verify this page** disclosure is not a marketing claim, it is instrumentation
+installed on the APIs before anything else runs: `fetch`, `XMLHttpRequest`,
+`WebSocket`, `EventSource`, `Worker`, `SharedWorker`, `RTCPeerConnection`,
+`sendBeacon`, `localStorage`, `sessionStorage`, `document.cookie`, `indexedDB`,
+the Cache API and the clipboard. Alongside it, the page listens for the browser's
+own `securitypolicyviolation` events, which is how a *blocked* request gets
+counted.
 
-Two figures sit in that panel and must never be confused with each other:
+Two figures sit in there and must never be confused with each other:
 
 - **Storage writes** counts `localStorage`, `sessionStorage`, cookies, IndexedDB
   and the Cache API. It reads zero, and it is not supposed to move.
@@ -197,8 +244,8 @@ real server. The test cannot become the leak.
 
 *Blocked by policy* counts the browser's own `securitypolicyviolation` events, so
 it can sit one below *self-test attempts*: a refused `wss://` connection raises
-no violation event, and the panel says so rather than leaving two numbers on
-screen that look like they disagree.
+no violation event, and the counter note says so rather than leaving two numbers
+on screen that look like they disagree.
 
 ### 4. You can check it without trusting us
 
@@ -242,7 +289,8 @@ brute-force enumeration in `test/entropy.test.mjs`.
 
 The upshot is that the figure never overstates what you got. With four types
 enabled at length 4, for instance, the only valid passwords are permutations of
-one character from each class, and the panel says so.
+one character from each class, and the page refuses to generate one, saying so
+under the plate.
 
 Crack times are shown against three labelled attacker rates &mdash; a
 rate-limited login form, bcrypt on one GPU, MD5 on a rig of eight &mdash; with
@@ -255,7 +303,7 @@ the assumptions printed rather than hidden.
 ```
 src/
   index.html          markup and the placeholders the build fills in
-  styles.css          dark, monospace, system fonts only
+  styles.css          the design, in two halves: structure, then the drawing
   app.js              wiring: reads controls, paints results, keeps the receipts
   lib/random.js       crypto.getRandomValues with rejection sampling
   lib/entropy.js      exact entropy and crack-time estimates
@@ -270,10 +318,11 @@ tools/
   make-wordlist.mjs   regenerate src/lib/wordlist.js from src/data
 test/
   random, entropy, generators   the pure modules, straight under node --test
-  controls.test.mjs             length ceilings, presets, mode switching, digest
+  controls.test.mjs             length ceilings, presets, modes, the hinge, digest
   integrity.test.mjs            the receipts, against the stub below
   dom-stub.mjs                  enough browser to load integrity.js in Node
-  build.test.mjs                the built file: reproducible, self-contained
+  build.test.mjs                the built file: reproducible, self-contained; and
+                                what styles.css owes the script it styles
 dist/                 the shippable file, plus its SHA-256
 vercel.json           deploy settings and the headers a host must send
 .github/workflows/    `npm run check` on Node 22 and 24, on every push
@@ -339,6 +388,9 @@ script. `node --test` loads them by lending them a `window`.
 - The receipts are instrumentation, not a guarantee. A wrapper that failed to
   install would read zero forever, so a zero is only worth what the positive
   control below says it is worth.
+- There is no print stylesheet. Printing is left entirely to the browser, so
+  `Cmd+P` prints the page as it appears on screen: the palette, the grid, the
+  card, and the colour coding on the characters.
 
 ### Which browsers this has actually been run in
 
@@ -377,15 +429,6 @@ back to `document.execCommand`. Both are clipboard writes and both are counted,
 so four presses read **8** there instead of 4. Nothing is misfiled: *storage
 writes* stays 0. It is the count of calls made to a clipboard API, not the count
 of successful pastes.
-
-**Printing.** `@media print` was written but had never been rendered until now,
-and it was wrong in two ways, both now fixed: the button row printed with its
-on-screen fills, and the accent teal printed on white at roughly a 2:1 contrast
-ratio. The masthead, settings, receipts, colophon, skip link, button row, strength
-bar and crack-time table are all `display: none` on paper. What prints is the
-password, its heading, the one-line description, the strength label and the stats
-grid &mdash; black on white, legible at length 4, 20 and 128 (128 wraps to three
-lines) and in passphrase mode.
 
 ---
 

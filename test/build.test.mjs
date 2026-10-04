@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, existsSync, copyFileSync, unlinkSync } fro
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { loadControls } from './helpers.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const distFile = join(root, 'dist', 'index.html');
@@ -144,7 +145,7 @@ test('every element id the script reaches for exists in the page', () => {
 
   const missing = [...wanted].filter((id) => !ids.has(id));
   assert.deepEqual(missing, [], 'the script looks up element ids that are not in the markup');
-  assert.ok(wanted.size > 30, 'expected the script to reference many controls, saw ' + wanted.size);
+  assert.ok(wanted.size > 25, 'expected the script to reference many controls, saw ' + wanted.size);
 });
 
 test('every id in the markup is filled by the script', () => {
@@ -155,8 +156,7 @@ test('every id in the markup is filled by the script', () => {
   // The exceptions are ids that exist to be read by a label or to carry static
   // prose, so there is nothing for the script to do with them.
   const NEVER_FILLED = new Set([
-    'secret-heading', 'settings-heading', 'trust-heading', // aria-labelledby targets
-    'exclude-hint', 'custom-hint', // static explanatory prose
+    'custom-hint', 'digest-input', // static prose, and a field the script only reads
   ]);
 
   const html = readFileSync(distFile, 'utf8');
@@ -178,6 +178,42 @@ test('the word list is embedded whole', () => {
   assert.equal(new Set(words).size, 7776);
 });
 
+test('every slider in the markup is a paired length control, and agrees with its limits', () => {
+  // controls.RANGE_PAIRS is the list app.js links by id, so a slider that is not
+  // in it is a slider whose number box is never kept in step with it. And the
+  // bounds in the markup are what linkRange() actually clamps against, so the
+  // library limits it consults have to be at least as wide -- or the box and the
+  // slider disagree about what is allowed.
+  //
+  // This is where the markup's own min/max can be read, which controls.test.mjs
+  // cannot do: LIMITS.password.min is 1 while the slider enforces 4, and that
+  // difference is part of why the box must not clamp mid-keystroke.
+  const html = readFileSync(distFile, 'utf8');
+  const markup = html.slice(0, html.indexOf('<script>'));
+  const sliders = [...markup.matchAll(/<input type="range" id="([^"]+)" min="(\d+)" max="(\d+)"/g)]
+    .map((m) => ({ id: m[1], min: Number(m[2]), max: Number(m[3]) }));
+  assert.ok(sliders.length >= 4, 'expected the four length sliders, saw ' + sliders.length);
+
+  const pairs = new Map(loadControls().controls.RANGE_PAIRS.map((p) => [p.range, p]));
+
+  for (const slider of sliders) {
+    const pair = pairs.get(slider.id);
+    assert.ok(pair, slider.id + ' is a slider but no RANGE_PAIRS entry links it to a number box');
+
+    const found = markup.match(new RegExp('<input type="number" id="' + pair.number + '"[^>]*>'));
+    assert.ok(found, pair.number + ' is linked to ' + slider.id + ' but is not a number input in the markup');
+
+    const number = found[0];
+    assert.match(number, new RegExp('min="' + slider.min + '"'), pair.number + ' and ' + slider.id + ' disagree about min');
+    assert.match(number, new RegExp('max="' + slider.max + '"'), pair.number + ' and ' + slider.id + ' disagree about max');
+
+    assert.ok(pair.limits.max >= slider.max, pair.range + ': the library allows less than the slider offers');
+    assert.ok(pair.limits.min <= slider.min, pair.range + ': the library floor is above the slider floor');
+  }
+
+  assert.equal(pairs.size, sliders.length, 'RANGE_PAIRS lists a slider that is not in the markup');
+});
+
 test('the page does not reference any server', () => {
   const html = readFileSync(distFile, 'utf8');
   const markup = html.slice(0, html.indexOf('<script>'));
@@ -188,4 +224,95 @@ test('package.json declares no dependencies', () => {
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   assert.deepEqual(pkg.dependencies, {});
   assert.deepEqual(pkg.devDependencies, {});
+});
+
+// ------------------------------------------------------- what the stylesheet owes
+//
+// There used to be five stylesheets and a test file per theme, so these guarantees
+// were written five times over and each one asserted that a variant existed as
+// much as that the CSS was right. There is one stylesheet now, and the existence
+// half is gone -- but these six are the part that catches the failure nobody sees
+// coming: a stylesheet that still parses, still builds, and has quietly stopped
+// responding to the interface. They are the gate between a stylesheet edit and a
+// page that no longer reacts to the controls.
+
+/** The one inline stylesheet, as it actually shipped. */
+function shippedCss() {
+  const html = readFileSync(distFile, 'utf8');
+  const open = '<style>';
+  const start = html.indexOf(open);
+  assert.ok(start !== -1, 'the built page has no <style>');
+  const end = html.indexOf('</style>', start);
+  assert.ok(end !== -1, 'the built page has no closing </style>');
+  return html.slice(start + open.length, end);
+}
+
+/**
+ * Comments stripped. The stylesheet is allowed to explain in prose that font-src
+ * is 'none' and that ornament has to be gradients, and saying so must not fail
+ * the build -- the same reason tools/build.mjs scans `codeOf` output.
+ */
+function cssCode(css) {
+  return css
+    .split('\n')
+    .filter((line) => {
+      const trimmed = line.trim();
+      return trimmed && !trimmed.startsWith('*') && !trimmed.startsWith('//') && !trimmed.startsWith('/*');
+    })
+    .join('\n');
+}
+
+test('the stylesheet consumes both custom properties the script writes', () => {
+  const css = shippedCss();
+  for (const property of ['--secret-size', '--fill']) {
+    assert.ok(
+      css.includes('var(' + property),
+      'the stylesheet never reads ' + property + '; app.js writes it, so part of the interface is dead'
+    );
+  }
+  assert.ok(css.includes('font-size: var(--secret-size'), 'the plate type size is not driven by --secret-size');
+  assert.ok(css.includes('var(--fill'), 'the gauge width is not driven by --fill');
+});
+
+test('the stylesheet styles all six character classes', () => {
+  const css = shippedCss();
+  for (const cls of ['dg', 'up', 'sy', 'ot', 'wd', 'sp']) {
+    assert.match(css, new RegExp('\\.secret \\.' + cls + '\\b'), 'the stylesheet does not style .secret .' + cls);
+  }
+});
+
+test('the stylesheet defines all six entropy tiers on both the fill and the verdict', () => {
+  const css = shippedCss();
+  for (let tier = 0; tier < 6; tier++) {
+    assert.match(css, new RegExp('\\.meter-fill\\.tier-' + tier + '\\b'), '.meter-fill.tier-' + tier);
+    assert.match(css, new RegExp('\\.meter-verdict\\.tier-' + tier + '\\b'), '.meter-verdict.tier-' + tier);
+  }
+});
+
+test('the stylesheet declares the tokens the structural layer reads', () => {
+  // The structural half of the stylesheet uses --ui, --focus, --on-focus and
+  // --page with no fallback, because there is nothing sensible to fall back to.
+  // A stylesheet that forgets one produces a silently unstyled skip link rather
+  // than an error, so it is asserted here.
+  const css = readFileSync(join(root, 'src', 'styles.css'), 'utf8');
+  for (const token of ['--ui:', '--focus:', '--on-focus:', '--page:']) {
+    assert.ok(css.includes(token), 'the stylesheet never defines ' + token);
+  }
+});
+
+test('the stylesheet fetches nothing', () => {
+  const code = cssCode(readFileSync(join(root, 'src', 'styles.css'), 'utf8'));
+  assert.ok(!code.includes('@font-face'), 'the stylesheet declares a font face');
+  assert.ok(!code.includes('@import'), 'the stylesheet imports a stylesheet');
+  assert.ok(!code.includes('url('), 'the stylesheet uses url(), which the policy will refuse');
+});
+
+test('the stylesheet honours prefers-reduced-motion for its own animation', () => {
+  const css = readFileSync(join(root, 'src', 'styles.css'), 'utf8');
+  assert.match(css, /@keyframes/, 'the stylesheet declares no animation, so has nothing to switch off');
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: reduce\)/,
+    'the stylesheet animates the secret but never offers to stop'
+  );
 });

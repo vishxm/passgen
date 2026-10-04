@@ -1,39 +1,32 @@
 /*
- * styles.css -- dark, monospace, no downloaded assets.
+ * styles.css -- the design. Two halves, in one file, in this order.
  *
- * font-src is 'none' in the policy, so every glyph here comes from a font the OS
- * already has. There are no images either, which is why the grid, the meter and
- * the checkmarks are all gradients and borders.
+ *   1. THE STRUCTURAL LAYER (the first half). Everything that must be true for
+ *      the page to work at all, and is not a design decision:
+ *
+ *        - the box-sizing reset, and [hidden] beating every display rule below it
+ *        - .visually-hidden and .skip-link, which are behaviour, not decoration
+ *        - the focus ring, keyed off --focus so the design picks its own colour
+ *        - the flex and grid scaffolding: one column, and the groups that have to
+ *          lay out a particular way (a range slider beside its number box, the
+ *          mode tabs, the action buttons sharing the width)
+ *
+ *   2. THE DESIGN (the second half). Everything that is a choice: colour, type,
+ *      rule weight, spacing, motion. See the note at the top of that half.
+ *
+ * ORDER IS LOAD-BEARING. The structural rules come first so that a design rule of
+ * equal specificity wins, and so that [hidden]'s !important has display rules
+ * beneath it to beat. Moving the two halves around is not a refactor; it is a way
+ * to get a page that half-stops responding.
+ *
+ * Note what the structural half does NOT carry: the :root tokens. Only the design
+ * half defines one, so a var() that resolves to nothing is always a mistake rather
+ * than a silent fallback to a default nobody chose. --secret-size and --fill are
+ * written by app.js (paintSecret and paintMeter), and this file consumes both or
+ * the plate and the gauge stop responding.
  */
 
-:root {
-  --bg: #08090b;
-  --bg-deep: #050608;
-  --panel: #0d0f13;
-  --panel-raised: #11141a;
-  --line: #1d222b;
-  --line-strong: #2b323e;
-  --text: #e8ecf2;
-  --muted: #8b95a5;
-  --dim: #5c6575;
-  --accent: #5eead4;
-  --accent-dim: #2b8f80;
-  --accent-ink: #04211c;
-  --ok: #34d399;
-  --warn: #fbbf24;
-  --bad: #fb7185;
-
-  --c-lower: #e8ecf2;
-  --c-upper: #7dd3fc;
-  --c-digit: #fbbf24;
-  --c-symbol: #f0abfc;
-  --c-other: #94a3b8;
-
-  --radius: 10px;
-  --radius-sm: 6px;
-  --gap: 16px;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-}
+/* ------------------------------------------------------------------ reset */
 
 *,
 *::before,
@@ -43,8 +36,10 @@
 
 /*
  * The UA stylesheet's `[hidden] { display: none }` loses to any author rule that
- * sets `display`, and this file sets it on .btn, .mode-panel and friends. Without
- * this line every "hidden" mode panel renders at once.
+ * sets `display`, and both halves of this file set it on .btn, .mode-panel and
+ * friends. Without this line every "hidden" mode panel renders at once -- four
+ * length sliders stacked on top of each other. !important, because the design
+ * half comes after this one and would otherwise beat it.
  */
 [hidden] {
   display: none !important;
@@ -56,53 +51,37 @@ html {
 
 body {
   margin: 0;
-  padding: 28px 20px 64px;
-  max-width: 1180px;
-  margin-inline: auto;
-  font-family: var(--mono);
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--text);
-  background-color: var(--bg);
-  /* A faint grid, drawn with gradients because img-src is 'none'. */
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
-    radial-gradient(120% 80% at 50% -10%, rgba(94, 234, 212, 0.05), transparent 60%);
-  background-size: 32px 32px, 32px 32px, 100% 100%;
-  background-attachment: fixed;
-}
-
-::selection {
-  background: rgba(94, 234, 212, 0.28);
 }
 
 h1,
 h2,
-h3 {
+h3,
+p,
+dl,
+dd {
   margin: 0;
-  font-weight: 600;
-  letter-spacing: 0.02em;
 }
 
 p {
   margin: 0;
 }
 
-a {
-  color: var(--accent);
+/*
+ * The one thing that must not be styled here is the secret plate's user-select:
+ * `all` rather than `text` is deliberate, because "select all" is what makes Copy
+ * by hand possible at all, and this page refuses to keep the value.
+ */
+.secret {
+  user-select: all;
 }
 
-code {
-  font-family: inherit;
-  font-size: 0.94em;
-  padding: 0.1em 0.35em;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: var(--bg-deep);
-  color: var(--c-upper);
-}
+/* --------------------------------------------------------------- a11y bits */
 
+/*
+ * Offscreen, not display:none -- a hidden label is still read by a screen
+ * reader, and there is exactly one of these on the page (the digest compare
+ * field). clip-path rather than the old clip: rect(), which is deprecated.
+ */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -114,535 +93,963 @@ code {
   white-space: nowrap;
 }
 
+/*
+ * The skip link. Parked off the left edge until it takes focus, which is the only
+ * moment it exists. No transition: it has to be in the same frame as the focus
+ * ring or a keyboard user's first Tab appears to do nothing.
+ */
 .skip-link {
   position: absolute;
   left: -9999px;
   top: 0;
-  padding: 10px 14px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-radius: 0 0 var(--radius-sm) 0;
-  text-decoration: none;
-  font-weight: 600;
   z-index: 10;
+  padding: 10px 14px;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--focus);
+  color: var(--on-focus);
+  border: 1px solid var(--focus);
 }
 
 .skip-link:focus {
   left: 0;
 }
 
+/*
+ * One ring for the whole page, on --focus. The design half picks a colour that
+ * clears 3:1 against its own stock, which is the WCAG non-text contrast
+ * requirement for a focus indicator.
+ */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus, currentColor);
   outline-offset: 2px;
 }
 
-/* ------------------------------------------------------------- masthead */
+/* ------------------------------------------------------------------ layout */
 
-.masthead {
+/*
+ * One column at every width. The old two-column grid put the plate in a 1130px
+ * band and the slider that changes it in a 620px card, with 537px of strength
+ * readout between them; dragging a 620px control mutated a 1130px plate. There
+ * is nothing to distribute here any more, so there is no grid.
+ */
+main {
+  display: grid;
+}
+
+/* The groups whose layout the design half below is not free to change. */
+.modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+}
+
+.always-on {
+  display: block;
+}
+
+/*
+ * .mode-panel is the whole mode contract: setMode() in app.js switches these by
+ * attribute, and the always-on length slot reuses the class so the four length
+ * pairs switch with the same loop. display: grid because each panel is a stack of
+ * independent fields; only the gap is left to the design half below.
+ */
+.mode-panel {
+  display: grid;
+}
+
+.field {
+  display: grid;
+}
+
+.field-row {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-bottom: 18px;
-  margin-bottom: 22px;
-  border-bottom: 1px solid var(--line);
+}
+
+/* The slider takes the slack; the design half sizes the number box. */
+.field-row > input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-row > input[type="number"] {
+  flex: none;
+}
+
+/* Regenerate and Copy share the width equally. */
+.actions {
+  display: flex;
+}
+
+.actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.toggles {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.toggle span {
+  display: grid;
+}
+
+/*
+ * A toggle's sub-label is off unless it earns its place. Twelve of them used to
+ * sit under twelve labels, and eight were the label again in different words
+ * ("Digits / 0-9 · 10"). The rule: delete restatements, keep consequences -- so
+ * `small` is hidden by default and the three that tell you something the label
+ * cannot opt back in with .keep.
+ */
+.toggle small {
+  display: none;
+}
+
+.toggle small.keep {
+  display: block;
+}
+
+/* The counter block closes as a grid, so the six cells leave no hole. */
+.counters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  margin: 0;
+  padding: 0;
+}
+
+.counter {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * All figures are tabular: these numbers are compared against each other, and a
+ * proportional figure changes width as it counts.
+ */
+.counter dd,
+.meter-bits,
+.c-time,
+.strip-value,
+.channel-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The crack table's three columns are fixed so the numbers stay in a column. */
+.crack {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.crack .c-time {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.crack .c-detail {
+  vertical-align: top;
+}
+
+/* The disclosure triangle is replaced by the design's own marker, further down. */
+.disclosure > summary,
+.advanced > summary,
+.adjust > summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker,
+.advanced > summary::-webkit-details-marker,
+.adjust > summary::-webkit-details-marker {
+  display: none;
+}
+
+/*
+ * A range input needs appearance:none on the element as well as on the track, or
+ * the UA's own thumb draws through the one the design draws. The design owns the
+ * rest.
+ */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* The custom checkbox. Sized and marked by the design; positioned here because
+   the ::after check mark is positioned against the input. */
+.toggle input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  position: relative;
+  cursor: pointer;
+}
+
+/* Select gets no native arrow: the design draws its own caret out of gradients. */
+select.text-input {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* Everything is inline-flex so the button label and its <kbd> sit on one line. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------- motion */
+
+/*
+ * One kill switch, honoured by the design half below: no transition and no
+ * animation anywhere, for anyone who has asked the OS not to move things. It
+ * also has to null the .secret.is-fresh keyframes by name, because an animation
+ * with duration 0 still fires its from-state for one frame.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ================================================================== the design
+ *
+ * THE IDEA. A password is a specification with an uncertainty attached to it, so
+ * this page draws it that way. Everything is dimensioned, everything is on the
+ * grid, and the strength gauge is a measured span with ticks and a dimension
+ * witness line rather than a bar that fills up. Mono throughout, because a
+ * drafting sheet has one hand; the labels are uppercase because a drawing's
+ * annotations are uppercase, and they are the same mono at a smaller size because
+ * a drawing has no second typeface either.
+ *
+ * THE GRID IS LOAD-BEARING. A 24px square in 12% cyan over a paper-white stock,
+ * with a heavier line every 96px -- four small squares, the way real graph paper
+ * is ruled. It is drawn with two gradients rather than an image because img-src
+ * allows only inline bytes and a repeating tile would be neither. The grid is what
+ * ties a 0-radius layout together: with no rounding and no shadow to soften the
+ * boxes, without a grid on the page the whole thing would read as a form.
+ *
+ * WHY CYAN-BLUE INK RATHER THAN PENCIL. Graph paper is blue, so every line drawn
+ * on it inherits the paper. A graphite page would be a different and more obvious
+ * design; cyan is the colour that only works because the grid is there to justify
+ * it, and it makes the whole page feel like one drawing rather than a form with
+ * blue text in it.
+ *
+ * THE GAUGE IS A DIMENSION LINE. Two witness lines at each end, an arrowed span
+ * between them, and a centred break in the rule at the 60-bit mark -- the place
+ * where guessing stops being the threat is a change in the drawing, not a
+ * differently-coloured bar. That is the one ornament on the page and it is the
+ * whole metaphor made visible.
+ */
+
+:root {
+  /* Stock: paper, ruled. */
+  --stock: #eef5fb;
+  --stock-deep: #e2ecf6; /* recessed: the plate, the gauge track, code */
+  --stock-lift: #f7fbff; /* raised: inputs, chips, disclosure bars */
+
+  /* Ink: cyan-blue, at three densities rather than three hues, so the page reads
+     as one drawing ink at different strengths. --ink-mute clears 4.5:1 on
+     --stock-lift (6.5:1). */
+  --ink: #0c2c4d;
+  --ink-soft: #1d4a75;
+  --ink-mute: #2f5f8a;
+
+  /* Rules. The 5mm blue line is --rule-strong and clears 3:1 on stock (3.3:1). */
+  --rule: #b8d2e8;
+  --rule-strong: #5d8bb5;
+
+  /* One spot: the drafting blue, darker than the ink, for callouts. */
+  --callout: #0a63b8;
+  --verified: #0d6a52; /* "dimensioned and confirmed", which is what a count is */
+
+  --page: 720px;
+
+  --focus: var(--callout);
+  --on-focus: #f7fbff;
+
+  /* One face. ui-monospace resolves to SF Mono on Apple, Cascadia Mono on
+     Windows, DejaVu Sans Mono on Linux; all three are drawn at these sizes. */
+  --ui: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono",
+    "Liberation Mono", monospace;
+  --display: var(--ui);
+}
+
+/* ------------------------------------------------------------------- stock */
+
+body {
+  --page: 720px;
+  padding: 28px 22px 64px;
+  max-width: calc(var(--page) + 44px);
+  margin-inline: auto;
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  background-color: var(--stock);
+  /*
+   * Graph paper: a 12px square, with a heavier line every 96px. Two gradient
+   * pairs, one set per axis, because a single gradient can only draw one line and
+   * the sheet needs two scales. Sized in px rather than in em so the squares stay
+   * square when the type size changes.
+   */
+  background-image:
+    linear-gradient(rgba(12, 44, 77, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 44, 77, 0.075) 1px, transparent 1px),
+    linear-gradient(rgba(12, 44, 77, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 44, 77, 0.13) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px, 96px 96px, 96px 96px;
+}
+
+::selection {
+  background: rgba(10, 99, 184, 0.2);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+a {
+  color: var(--callout);
+}
+
+code {
+  font-family: var(--ui);
+  font-size: 0.92em;
+  padding: 0.05em 0.3em;
+  color: var(--ink);
+  background: var(--stock-deep);
+  border: 1px solid var(--rule);
+}
+
+/* --------------------------------------------------------------- masthead */
+
+.masthead {
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--ink);
 }
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent);
-  border: 1px solid var(--accent-dim);
-  border-radius: var(--radius-sm);
-  background: rgba(94, 234, 212, 0.07);
-}
-
-.brand-text h1 {
-  font-size: 17px;
-  text-transform: lowercase;
-  letter-spacing: 0.06em;
-}
-
-.brand-text p {
-  color: var(--muted);
-  font-size: 12.5px;
-}
-
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  font-size: 11.5px;
-  color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--panel);
-  white-space: nowrap;
-}
-
-.badge-value {
-  color: var(--ok);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.badge-alarm {
-  border-color: var(--warn);
-  color: var(--warn);
-}
-
-.badge-alarm .badge-value {
-  color: var(--warn);
-}
-
-/* ------------------------------------------------------------- layout */
-
-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: var(--gap);
-  align-items: start;
-}
-
-.panel-secret {
-  grid-column: 1 / -1;
-}
-
-.panel {
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-}
-
-.panel-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 11px;
 }
 
-.panel-head h2 {
-  font-size: 13px;
+/* The mark is the drawing-office title block glyph, in the callout blue. */
+.brand-mark {
+  font-family: var(--ui);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--callout);
+}
+
+.brand h1 {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--muted);
+  letter-spacing: 0.2em;
 }
 
-.panel-note {
-  font-size: 11.5px;
-  color: var(--dim);
+/* ------------------------------------------------------------------ layout */
+
+/*
+ * THE SHEET. A drawn frame with corner ticks, sitting on the grid: no fill at all
+ * on the card itself, so the ruling runs continuously underneath everything. A
+ * filled card would be a panel; a frame with ticks at its corners is a drawing
+ * extent, which is what this page is.
+ */
+.deck {
+  position: relative;
+  padding: 20px 24px 24px;
+  border: 1px solid var(--ink);
+  background: rgba(247, 251, 255, 0.66);
 }
 
-.panel-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.deck::before {
+  /* The sheet number, drawn as an index tab on the top edge at the left. */
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 18px;
+  width: 44px;
+  height: 4px;
+  background: var(--callout);
 }
 
-/* ------------------------------------------------------------- buttons */
+.deck::after {
+  /* Corner ticks: eight 12px marks at the four corners, inside the frame. A
+     drawing marks its extent at the corners rather than along the edges, and here
+     that distinction is the difference between a sheet of paper and a table cell. */
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink)),
+    linear-gradient(var(--ink), var(--ink));
+  background-size: 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px;
+  background-position:
+    left top,
+    left top,
+    right top,
+    right top,
+    left bottom,
+    left bottom,
+    right bottom,
+    right bottom;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+}
 
+/* ----------------------------------------------------------------- buttons */
+
+/*
+ * Buttons are drawing-office callouts: a label in a box, uppercase, with the box
+ * drawn in the rule colour rather than the ink. Hover thickens the box rather than
+ * filling it, because nothing on this sheet is filled.
+ */
 .btn {
-  display: inline-flex;
-  align-items: center;
   gap: 7px;
-  padding: 7px 12px;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--text);
-  background: var(--panel-raised);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+  padding: 7px 13px;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  background: var(--stock-lift);
+  border: 1px solid var(--rule-strong);
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease,
+    border-width 120ms ease;
 }
 
 .btn:hover {
-  border-color: var(--accent-dim);
-  color: #fff;
+  color: var(--ink);
+  background: #fff;
+  border-color: var(--ink);
+  border-width: 2px;
+  padding: 6px 12px;
 }
 
 .btn:active {
-  transform: translateY(1px);
+  background: var(--stock-deep);
 }
 
+/*
+ * The primary action is the one filled box on the sheet, in the callout blue. On a
+ * drawing a filled box means "this is the dimension that matters", and this is it.
+ */
 .btn-primary {
-  color: var(--accent-ink);
-  background: var(--accent);
-  border-color: var(--accent);
-  font-weight: 600;
+  color: var(--on-focus);
+  background: var(--callout);
+  border-color: var(--callout);
 }
 
 .btn-primary:hover {
-  background: #7df0dd;
-  border-color: #7df0dd;
-  color: var(--accent-ink);
+  color: var(--on-focus);
+  background: var(--callout);
+  border-color: var(--callout);
+  border-width: 1px;
+  padding: 7px 13px;
 }
 
 .btn-quiet {
+  color: var(--ink-soft);
   background: transparent;
-  color: var(--muted);
+  border-color: var(--rule);
+}
+
+.btn-quiet:hover {
+  color: var(--ink);
+  border-color: var(--ink);
 }
 
 .btn[aria-pressed="true"] {
-  color: var(--accent);
-  border-color: var(--accent-dim);
+  color: var(--callout);
+  background: var(--stock-lift);
+  border-color: var(--callout);
+  border-width: 2px;
+  padding: 6px 12px;
 }
 
+.btn:disabled {
+  color: var(--ink-mute);
+  border-color: var(--rule);
+  background: var(--stock-deep);
+  cursor: default;
+}
+
+/* The shortcut is a bracketed reference, the way a drawing annotates a keyboard
+   equivalent in its title block. */
 kbd {
-  padding: 1px 5px;
-  font: inherit;
-  font-size: 10.5px;
+  padding: 0 2px;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
   color: inherit;
-  border: 1px solid currentColor;
-  border-radius: 4px;
-  opacity: 0.65;
+  opacity: 0.7;
 }
 
-/* ------------------------------------------------------------- the secret */
+kbd::before {
+  content: "[";
+}
 
+kbd::after {
+  content: "]";
+}
+
+/* ------------------------------------------------------------- the plate */
+
+/*
+ * THE PLATE. A boxed note on the drawing, recessed by a blue tint rather than a
+ * shadow -- shadows would be the one lighting cue this design does not have. The
+ * secret is set in the drawing's own mono at display size, because a value on a
+ * drawing is always monospaced: it has to line up with the tick marks beside it.
+ */
 .secret {
   display: block;
-  min-height: 92px;
-  padding: 18px;
+  min-height: 112px;
+  padding: 18px 20px;
+  font-family: var(--ui);
   font-size: var(--secret-size, 26px);
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.5;
   letter-spacing: 0.01em;
   word-break: break-all;
   overflow-wrap: anywhere;
-  color: var(--c-lower);
-  background: var(--bg-deep);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--accent-dim);
-  border-radius: var(--radius-sm);
-  user-select: all;
+  color: var(--ink);
+  background: var(--stock-deep);
+  border: 1px solid var(--rule-strong);
 }
 
-.secret.is-hidden {
-  color: transparent;
-  text-shadow: 0 0 12px rgba(232, 236, 242, 0.55);
+/*
+ * Character classes, told apart by weight and by one darker ink. A drawing has no
+ * colour vocabulary beyond the ink it is drawn in, so the signals are density and
+ * a step darker -- and they survive being reproduced on a monochrome printer,
+ * which is the only printer a drafting office has.
+ *   lowercase  regular
+ *   uppercase  bold
+ *   digits     callout blue
+ *   symbols    callout blue, bold
+ */
+.secret .up {
+  font-weight: 700;
+  color: var(--ink);
 }
 
-.secret .up { color: var(--c-upper); }
-.secret .dg { color: var(--c-digit); }
-.secret .sy { color: var(--c-symbol); }
-.secret .ot { color: var(--c-other); }
+.secret .dg {
+  color: var(--callout);
+  font-weight: 500;
+}
+
+.secret .sy {
+  color: var(--callout);
+  font-weight: 700;
+}
+
+/* Present in a custom set, so it has to be styled rather than left to default. */
+.secret .ot {
+  color: var(--ink-soft);
+}
+
+.secret .wd {
+  color: var(--ink);
+  font-weight: 400;
+}
+
+/* A space has to be visible or a passphrase reads as one word. */
 .secret .sp {
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 3px;
+  background: rgba(10, 99, 184, 0.15);
+  box-shadow: 0 1px 0 rgba(10, 99, 184, 0.4);
 }
-.secret .wd { color: var(--c-other); }
+
+/* One orchestrated moment: a new value is struck onto the sheet. */
+@keyframes blueprint-strike {
+  from {
+    opacity: 0.2;
+    transform: translateX(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.secret.is-fresh {
+  animation: blueprint-strike 170ms ease-out;
+}
+
+/* The hinge is a dimension note: what was actually drawn, in what quantity. */
+.hinge {
+  margin-top: 11px;
+  padding-left: 10px;
+  border-left: 2px solid var(--callout);
+  font-family: var(--ui);
+  font-size: 10.5px;
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-mute);
+}
 
 .notice {
   margin-top: 10px;
+  font-family: var(--ui);
   font-size: 12px;
-  color: var(--muted);
+  line-height: 1.55;
+  color: var(--ink-soft);
   min-height: 1.2em;
 }
 
 .notice-error {
-  color: var(--bad);
+  color: var(--callout);
+  font-weight: 700;
 }
 
-/* ------------------------------------------------------------- meter */
+.actions {
+  gap: 8px;
+  margin-top: 14px;
+}
 
-.meter {
-  margin-top: 16px;
+.actions .btn {
+  padding: 9px 13px;
+  font-size: 11.5px;
+}
+
+/* Transient, and separate from the hinge: a note pinned to the margin. */
+.flash {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px dashed var(--rule-strong);
+  font-family: var(--ui);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.flash.is-on {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ gauge */
+
+/*
+ * THE DIMENSION LINE. This is the ornament. Two witness lines at the ends of the
+ * track, the span drawn between them, an arrowhead at the leading end, and a break
+ * in the rule at the 60-bit mark -- the place where guessing stops being the
+ * threat is drawn as a change in the dimension line, not as a different colour.
+ *
+ * The witness lines are the .meter-scale's ticks (the five bit boundaries, at
+ * their exact uneven positions) plus two end caps. The arrow is the meter-track's
+ * own border, and the leading end cap is a 3px gradient stop on the fill's box
+ * shadow -- four elements drawing one thing, which is what a dimension line is.
+ */
+.verdict {
+  margin-top: 20px;
 }
 
 .meter-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 7px;
+  gap: 14px;
+  margin-bottom: 12px;
 }
 
 .meter-verdict {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .meter-bits {
-  font-size: 12px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
+.meter-scale {
+  position: relative;
+  height: 13px;
+  margin-bottom: -1px;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 21.875%,
+    var(--ink-mute) 21.875%,
+    var(--ink-mute) calc(21.875% + 1px),
+    transparent calc(21.875% + 1px),
+    transparent 28.125%,
+    var(--ink-mute) 28.125%,
+    var(--ink-mute) calc(28.125% + 1px),
+    transparent calc(28.125% + 1px),
+    transparent 46.875%,
+    var(--callout) 46.875%,
+    var(--callout) calc(46.875% + 2px),
+    transparent calc(46.875% + 2px),
+    transparent 58.594%,
+    var(--ink-mute) 58.594%,
+    var(--ink-mute) calc(58.594% + 1px),
+    transparent calc(58.594% + 1px),
+    transparent 78.125%,
+    var(--ink-mute) 78.125%,
+    var(--ink-mute) calc(78.125% + 1px),
+    transparent calc(78.125% + 1px),
+    transparent 100%
+  );
+}
+
+/*
+ * The rule the span is measured against. Dashed, because on a drawing a dimension
+ * is measured against an extension line rather than against a solid edge.
+ */
 .meter-track {
-  height: 6px;
-  border-radius: 999px;
-  background: #14181f;
-  border: 1px solid var(--line);
-  overflow: hidden;
+  height: 12px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  box-shadow: inset 0 0 0 3px var(--stock);
 }
 
 .meter-fill {
   width: var(--fill, 0%);
   height: 100%;
-  background: var(--tier, var(--dim));
-  transition: width 140ms ease, background-color 140ms ease;
+  background: var(--ink-soft);
+  /* The arrowhead at the leading end: three 1px stops fanning into a point,
+     drawn as an inset shadow on the leading edge of the span. */
+  box-shadow: inset -3px 0 0 -1px var(--ink), inset -5px 0 0 -2px var(--ink);
+  transition: width 200ms ease, background-color 200ms ease;
 }
 
-.tier-0 { color: var(--bad); }
-.tier-1 { color: #fb923c; }
-.tier-2 { color: var(--warn); }
-.tier-3 { color: #a3e635; }
-.tier-4 { color: var(--ok); }
-.tier-5 { color: var(--accent); }
-
-.meter-fill.tier-0 { background: var(--bad); }
-.meter-fill.tier-1 { background: #fb923c; }
-.meter-fill.tier-2 { background: var(--warn); }
-.meter-fill.tier-3 { background: #a3e635; }
-.meter-fill.tier-4 { background: var(--ok); }
-.meter-fill.tier-5 { background: var(--accent); }
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1px;
-  margin: 14px 0 0;
-  padding: 0;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+/*
+ * Two readings, not six: below the threshold the number is a problem, above it
+ * the number stops being one. Splitting it further would be decoration; the
+ * verdict word carries the rest.
+ */
+.meter-fill.tier-0,
+.meter-fill.tier-1,
+.meter-fill.tier-2 {
+  background: var(--callout);
 }
 
-.stat {
-  padding: 9px 11px;
-  background: var(--panel);
+.meter-fill.tier-3,
+.meter-fill.tier-4,
+.meter-fill.tier-5 {
+  background: var(--verified);
 }
 
-.stat dt {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
+.meter-verdict.tier-0,
+.meter-verdict.tier-1,
+.meter-verdict.tier-2 {
+  color: var(--callout);
 }
 
-.stat dd {
-  margin: 3px 0 0;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+.meter-verdict.tier-3,
+.meter-verdict.tier-4,
+.meter-verdict.tier-5 {
+  color: var(--verified);
 }
 
-.crack {
-  width: 100%;
-  margin-top: 14px;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 12px;
-}
+/* ---------------------------------------------------------------- settings */
 
-.crack caption {
-  caption-side: top;
-  text-align: left;
-  padding-bottom: 8px;
-  color: var(--dim);
-  font-size: 11.5px;
-  line-height: 1.5;
-}
-
-.crack td {
-  padding: 7px 10px;
-  border-top: 1px solid var(--line);
-  vertical-align: top;
-}
-
-.crack .c-label {
-  width: 30%;
-  color: var(--text);
-}
-
-.crack .c-detail {
-  color: var(--dim);
-  font-size: 11.5px;
-}
-
-.crack .c-time {
-  width: 27%;
-  text-align: right;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* ------------------------------------------------------------- settings */
-
+/*
+ * Mode tabs are four cells in one box, sharing the dividers. The selected one is
+ * the callout blue, because on a drawing a selected element is marked, not filled.
+ */
 .modes {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 12px;
-  background: var(--bg-deep);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  gap: 0;
+  padding: 0;
+  margin-bottom: 13px;
+  border: 1px solid var(--rule-strong);
 }
 
 .mode {
   padding: 7px 6px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  border: 0;
+  border-right: 1px solid var(--rule-strong);
   cursor: pointer;
   transition: color 120ms ease, background-color 120ms ease;
 }
 
+.mode:last-child {
+  border-right: 0;
+}
+
 .mode:hover {
-  color: var(--text);
+  color: var(--ink);
+  background: rgba(12, 44, 77, 0.05);
 }
 
 .mode[aria-checked="true"] {
-  color: var(--accent);
-  background: rgba(94, 234, 212, 0.09);
-  border-color: var(--accent-dim);
+  color: #f7fbff;
+  background: var(--ink);
 }
 
 .presets {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 7px;
-  padding-bottom: 14px;
-  margin-bottom: 14px;
-  border-bottom: 1px dashed var(--line);
-}
-
-.presets-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
+  padding-bottom: 13px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .chip {
   padding: 4px 10px;
-  font: inherit;
-  font-size: 11.5px;
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
   background: transparent;
-  border: 1px dashed var(--line-strong);
-  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
   cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
 .chip:hover {
-  color: var(--accent);
-  border-color: var(--accent-dim);
-  border-style: solid;
+  color: var(--callout);
+  border-color: var(--callout);
+  background: var(--stock-lift);
 }
 
 .mode-panel {
-  display: grid;
-  gap: 16px;
+  gap: 18px;
+}
+
+/*
+ * The one control that is always on screen, between the strength readout and the
+ * disclosure. A heavy rule above it, because a drawing separates zones with a
+ * centre line and this is the one place the page needs one.
+ */
+.always-on {
+  margin-top: 20px;
+  padding-top: 17px;
+  border-top: 2px solid var(--ink);
 }
 
 .field {
-  display: grid;
   gap: 7px;
 }
 
+/* Field labels are annotations, so they are uppercased and set off the grid in a
+   lighter ink -- the way a drawing dims an annotation against its object. */
 .field > label,
 .toggles legend {
-  font-size: 11px;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
+  letter-spacing: 0.13em;
+  color: var(--ink-mute);
 }
 
 .field-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.field-row > input[type="range"] {
-  flex: 1;
+  gap: 11px;
 }
 
 .field-row > input[type="number"] {
-  width: 74px;
+  width: 78px;
 }
 
 .hint {
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-mute);
 }
 
-/* range */
+/* range -- a dimension line you drag, with witness ticks under it */
 
 input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 22px;
-  background: transparent;
-  cursor: pointer;
+  height: 24px;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background: #1b2029;
-  border: 1px solid var(--line);
+  height: 3px;
+  background: var(--rule-strong);
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -6px;
-  border-radius: 3px;
-  background: var(--accent);
-  border: 1px solid var(--accent);
+  width: 4px;
+  height: 20px;
+  margin-top: -9px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  /* The paper gap either side keeps the nib legible where it crosses the track. */
+  box-shadow: 0 0 0 3px var(--stock);
 }
 
 input[type="range"]::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: #1b2029;
-  border: 1px solid var(--line);
+  height: 3px;
+  background: var(--rule-strong);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 13px;
-  height: 13px;
-  border-radius: 3px;
-  background: var(--accent);
-  border: 1px solid var(--accent);
+  width: 4px;
+  height: 19px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  box-shadow: 0 0 0 3px var(--stock);
+}
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--stock), 0 0 0 5px var(--focus);
+}
+
+input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--stock), 0 0 0 5px var(--focus);
 }
 
 /* number / text / select / textarea */
@@ -651,12 +1058,12 @@ input[type="number"],
 .text-input {
   width: 100%;
   padding: 7px 10px;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--text);
-  background: var(--bg-deep);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
+  font-family: var(--ui);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--stock-lift);
+  border: 1px solid var(--rule-strong);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 input[type="number"] {
@@ -671,139 +1078,169 @@ textarea.text-input {
 
 input::placeholder,
 textarea::placeholder {
-  color: #4a5261;
+  color: var(--ink-mute);
+  opacity: 0.68;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--accent-dim);
+  border-color: var(--callout);
+  box-shadow: 0 0 0 2px rgba(10, 99, 184, 0.16);
 }
 
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* The caret is drawn with two gradients: appearance:none otherwise leaves the
+   field looking like a plain box with no sign it opens anything. */
 select.text-input {
-  appearance: none;
-  cursor: pointer;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position: right 14px center, right 9px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
 
 /* toggles */
 
 .toggles {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  border: 0;
+  gap: 0;
 }
 
 .toggles legend {
-  padding: 0 0 8px;
+  padding: 0 0 9px;
 }
 
 .toggle {
-  display: flex;
-  align-items: flex-start;
   gap: 10px;
-  padding: 7px 9px;
+  padding: 6px 8px;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .toggle:hover {
-  background: var(--panel-raised);
-  border-color: var(--line);
+  background: var(--stock-lift);
+  border-color: var(--rule);
 }
 
+/* The checkbox is an empty cell that gets a tick when it is filled in. Ticks, not
+   fills: a drawing marks a value, it does not flood it. */
 .toggle input {
-  appearance: none;
-  -webkit-appearance: none;
-  flex: none;
   width: 16px;
   height: 16px;
-  margin: 2px 0 0;
-  background: var(--bg-deep);
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
+  margin: 3px 0 0;
+  background: var(--stock-lift);
+  border: 1px solid var(--rule-strong);
+  transition: border-color 120ms ease;
 }
 
 .toggle input:checked {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--stock-lift);
+  border-color: var(--callout);
+  border-width: 2px;
 }
 
 .toggle input:checked::after {
   content: "";
   position: absolute;
-  left: 4.5px;
-  top: 1px;
-  width: 4px;
+  left: 3px;
+  top: 0;
+  width: 5px;
   height: 9px;
-  border: solid var(--accent-ink);
+  border: solid var(--callout);
   border-width: 0 2px 2px 0;
   transform: rotate(42deg);
 }
 
 .toggle span {
-  display: grid;
-  gap: 1px;
-  font-size: 12.5px;
+  gap: 2px;
+  font-family: var(--ui);
+  font-size: 12px;
+  color: var(--ink);
 }
 
-.toggle small {
-  font-size: 11px;
-  color: var(--dim);
+.toggle small.keep {
+  font-family: var(--ui);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-mute);
 }
 
 /* disclosures */
 
 .disclosure,
-.advanced {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-deep);
+.advanced,
+.adjust {
+  border: 1px solid var(--rule-strong);
+  background: rgba(247, 251, 255, 0.7);
 }
 
 .disclosure > summary,
-.advanced > summary {
-  padding: 9px 12px;
-  font-size: 12px;
-  color: var(--muted);
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.advanced > summary,
+.adjust > summary {
+  gap: 9px;
+  padding: 8px 11px;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  transition: color 120ms ease, background-color 120ms ease;
 }
 
-.disclosure > summary::-webkit-details-marker,
-.advanced > summary::-webkit-details-marker {
-  display: none;
+.disclosure > summary:hover,
+.advanced > summary:hover,
+.adjust > summary:hover {
+  color: var(--callout);
+  background: var(--stock-lift);
 }
 
+/* The marker is a section letter, the way a drawing's notes are keyed A, B, C. */
 .disclosure > summary::before,
-.advanced > summary::before {
-  content: "+";
-  color: var(--accent);
-  font-weight: 600;
-  width: 1ch;
+.advanced > summary::before,
+.adjust > summary::before {
+  content: "\00A7";
+  width: 1.5em;
+  font-weight: 700;
+  color: var(--callout);
 }
 
-.disclosure[open] > summary::before,
-.advanced[open] > summary::before {
-  content: "\2212";
+.disclosure[open],
+.advanced[open],
+.adjust[open] {
+  background: rgba(247, 251, 255, 0.94);
 }
 
 .disclosure[open] > summary,
-.advanced[open] > summary {
-  border-bottom: 1px solid var(--line);
+.advanced[open] > summary,
+.adjust[open] > summary {
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .disclosure > *:not(summary),
-.advanced > *:not(summary) {
+.advanced > *:not(summary),
+.adjust > *:not(summary) {
   margin: 12px;
+}
+
+/*
+ * The disclosure that stands in for the whole settings panel. Its children are the
+ * per-mode panels, so it needs no padding of its own, but they would sit flush
+ * against the summary rule without a little.
+ */
+.adjust {
+  margin-top: 16px;
+}
+
+.adjust > .mode-panel {
+  gap: 16px;
 }
 
 .advanced[open] {
@@ -811,78 +1248,87 @@ select.text-input {
 }
 
 .advanced > .field {
-  margin: 12px 0 8px;
+  margin: 12px 0 9px;
 }
 
-/* ------------------------------------------------------------- receipts */
+/* ---------------------------------------------------------------- receipts */
 
 .lede {
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.6;
-  color: var(--muted);
-  margin-bottom: 14px;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
 }
 
-/* A receipt, not a dashboard: label left, figure right, ruled in between. */
+/*
+ * THE ZEROS ARE THE PRODUCT. Each figure gets a cell and the number is the largest
+ * thing in this section, because "0 network calls" is the claim the whole page
+ * exists to support. The cells share hairlines so the block reads as one ruled
+ * schedule rather than six separate boxes, which is how a drawing tables its
+ * data.
+ */
 .counters {
-  margin: 0;
-  padding: 4px 0 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-deep);
+  gap: 0;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
 }
 
 .counter {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 11px;
-  border-bottom: 1px solid var(--line);
-}
-
-.counter:last-child {
-  border-bottom: 0;
+  gap: 3px;
+  padding: 10px 11px 11px;
+  background: rgba(247, 251, 255, 0.7);
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
 }
 
 .counter dt {
-  font-size: 11.5px;
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
 }
 
 .counter dd {
-  margin: 0;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ok);
+  font-family: var(--ui);
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.14;
+  color: var(--verified);
   white-space: nowrap;
 }
 
 .counter dd.counter-alarm {
-  color: var(--warn);
+  color: var(--callout);
 }
 
-/* The origin is a string, not a measured count, so it does not get the tabular
-   green that the rest of this table uses to mean "a figure we produced". */
+/*
+ * The origin is a string rather than a measured count, so it keeps a small type
+ * size instead of borrowing the 25px figure. The cell says "these are the
+ * counters"; the type says which of them are counts.
+ */
 .counter dd.counter-text {
-  font-family: var(--mono);
+  margin-top: auto;
   font-size: 11.5px;
-  color: var(--muted);
-  text-align: right;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink-soft);
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
 .counter-note {
-  margin-top: 10px;
-  font-size: 11.5px;
-  line-height: 1.55;
-  color: var(--dim);
+  margin-top: 13px;
+  font-size: 12px;
+  line-height: 1.58;
+  color: var(--ink-mute);
 }
 
 .channel-list {
   display: grid;
-  gap: 3px;
+  gap: 0;
+  font-family: var(--ui);
   font-size: 11.5px;
 }
 
@@ -891,8 +1337,8 @@ select.text-input {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  padding: 3px 0;
-  border-bottom: 1px dotted var(--line);
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--rule-strong);
 }
 
 .channel-row:last-child {
@@ -900,50 +1346,55 @@ select.text-input {
 }
 
 .channel-name {
-  color: var(--muted);
+  color: var(--ink-soft);
   overflow-wrap: anywhere;
 }
 
 .channel-count {
-  color: var(--ok);
-  font-variant-numeric: tabular-nums;
+  color: var(--verified);
   white-space: nowrap;
 }
 
 .channel-row.is-hit .channel-count {
-  color: var(--warn);
+  color: var(--callout);
+  font-weight: 700;
 }
 
 .channel-idle {
-  color: var(--dim);
-  font-size: 11.5px;
+  font-family: var(--ui);
+  font-size: 12px;
+  line-height: 1.58;
+  color: var(--ink-mute);
 }
 
+/* The policy is quoted verbatim from the document head, so it is set as a block
+   quote with the callout bar in the margin -- a quoted note, not a code listing. */
 .policy {
   margin: 0;
-  padding: 11px;
+  padding: 12px;
+  font-family: var(--ui);
   font-size: 11px;
-  line-height: 1.6;
-  color: var(--c-upper);
+  line-height: 1.68;
+  color: var(--ink-soft);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--stock-deep);
+  border: 1px solid var(--rule-strong);
+  border-left: 2px solid var(--callout);
 }
 
 .selftest {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--line);
+  margin-top: 19px;
+  padding-top: 17px;
+  border-top: 2px solid var(--ink);
 }
 
 .selftest .hint {
-  margin-top: 8px;
+  margin-top: 9px;
 }
 
 .selftest-results {
-  margin-top: 12px;
+  margin-top: 13px;
 }
 
 .selftest-results:empty {
@@ -951,232 +1402,208 @@ select.text-input {
 }
 
 .test-group {
-  margin-bottom: 12px;
+  margin-bottom: 15px;
 }
 
 .test-group h3 {
-  font-size: 10.5px;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--dim);
-  margin-bottom: 6px;
+  letter-spacing: 0.13em;
+  color: var(--ink-mute);
+  margin-bottom: 7px;
 }
 
 .test-row {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px dotted var(--line);
+  grid-template-columns: 17px minmax(0, 1fr);
+  gap: 9px;
+  padding: 7px 0;
+  border-bottom: 1px dotted var(--rule-strong);
 }
 
 .test-mark {
+  font-family: var(--ui);
   font-weight: 700;
   line-height: 1.5;
 }
 
-.test-pass .test-mark { color: var(--ok); }
-.test-fail .test-mark { color: var(--bad); }
-
-.test-label {
-  font-size: 12px;
+.test-pass .test-mark {
+  color: var(--verified);
 }
 
-.test-detail,
-.test-observed {
-  font-size: 11px;
-  color: var(--dim);
+.test-fail .test-mark {
+  color: var(--callout);
+}
+
+.test-label {
+  font-family: var(--ui);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.test-detail {
+  font-family: var(--ui);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-mute);
   overflow-wrap: anywhere;
 }
 
+/* The observed value is a reading off an instrument, so it is quoted at a smaller
+   size in the softer ink. */
 .test-observed {
-  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
 }
 
 .digest {
+  padding: 10px 12px;
+  font-family: var(--ui);
   font-size: 11.5px;
-  color: var(--c-upper);
+  line-height: 1.5;
+  color: var(--ink);
   overflow-wrap: anywhere;
-  padding: 9px 11px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--stock-deep);
+  border: 1px solid var(--rule-strong);
+  border-left: 2px solid var(--callout);
 }
 
-/* ------------------------------------------------------------- colophon */
+/* ------------------------------------------------------------------ footer */
+
+.footer {
+  max-width: var(--page);
+  margin: 26px auto 0;
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 20px;
+  margin: 0;
+  padding-top: 13px;
+  border-top: 2px solid var(--ink);
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-mute);
+}
+
+.strip-item {
+  white-space: nowrap;
+}
+
+.strip-value {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--verified);
+}
+
+.strip-alarm,
+.strip-alarm .strip-value {
+  color: var(--callout);
+}
+
+.footer > .disclosure {
+  margin-top: 10px;
+}
 
 .colophon {
-  margin-top: 26px;
-  padding-top: 22px;
-  border-top: 1px solid var(--line);
-}
-
-.colophon-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-}
-
-.colophon h2 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  margin-bottom: 7px;
-}
-
-.colophon p {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
-  color: var(--dim);
+  color: var(--ink-soft);
 }
 
 .legal {
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px dotted var(--line);
-  font-size: 11px;
-  color: var(--dim);
+  padding-top: 15px;
+  border-top: 1px solid var(--rule-strong);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-mute);
 }
 
-/* ------------------------------------------------------------- responsive */
+/* -------------------------------------------------------------- responsive */
 
-@media (max-width: 900px) {
-  main {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 560px) {
+  body {
+    padding: 18px 13px 52px;
   }
 
-  .panel-secret {
-    grid-column: auto;
+  /*
+   * The grid goes with the page. On a 390px screen a 24px square is a large
+   * fraction of the width and four small squares across would be the loudest
+   * thing on it, so it halves rather than scaling.
+   */
+  body {
+    background-image:
+      linear-gradient(rgba(12, 44, 77, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(12, 44, 77, 0.07) 1px, transparent 1px),
+      linear-gradient(rgba(12, 44, 77, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(12, 44, 77, 0.12) 1px, transparent 1px);
+    background-size: 12px 12px, 12px 12px, 48px 48px, 48px 48px;
+  }
+
+  .deck {
+    padding: 15px 13px 17px;
+  }
+
+  .deck::before {
+    left: 12px;
+  }
+
+  .deck::after {
+    inset: 4px;
   }
 
   .modes {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .crack .c-detail {
-    display: none;
+  /* The shared dividers only work in a single row; in two rows they read as a
+     broken grid, so each cell carries its own bottom rule. */
+  .mode {
+    border-bottom: 1px solid var(--rule-strong);
   }
 
-  .crack .c-label {
-    width: 45%;
+  .mode:nth-child(2n) {
+    border-right: 0;
   }
 
-  .crack .c-time {
-    width: 55%;
-  }
-}
-
-@media (max-width: 520px) {
-  body {
-    padding: 18px 12px 48px;
-  }
-
-  .panel {
-    padding: 14px;
-  }
-
-  .panel-actions .btn {
-    flex: 1;
-    justify-content: center;
+  .mode:nth-last-child(-n + 2) {
+    border-bottom: 0;
   }
 
   .field-row {
     flex-wrap: wrap;
   }
+
+  /* "Offline, rate-limited" is the longest label; drop the middle column and let
+     it break rather than crushing both remaining ones. */
+  .crack .c-detail {
+    display: none;
+  }
+
+  .crack .c-label {
+    width: 54%;
+  }
+
+  .crack .c-time {
+    width: 46%;
+  }
 }
 
-/* ------------------------------------------------------------- motion */
+/* ------------------------------------------------------------------ motion */
 
 @media (prefers-reduced-motion: reduce) {
-  * {
-    transition-duration: 0ms !important;
-    animation-duration: 0ms !important;
-  }
-}
-
-/* ------------------------------------------------------------- print */
-
-@media print {
-  body {
-    padding: 0;
-    background: #fff;
-    color: #000;
-  }
-
-  .masthead,
-  .panel:not(.panel-secret),
-  .colophon,
-  .skip-link,
-  .meter-track,
-  .crack {
-    display: none !important;
-  }
-
-  /* Paper cannot be clicked. Found by rendering the print stylesheet for the
-     first time: the button row came out with its screen fills, which wastes
-     toner and prints five labels that do nothing. */
-  .panel-actions {
-    display: none !important;
-  }
-
-  main {
-    display: block;
-  }
-
-  .panel-secret {
-    border: 0;
-    background: #fff;
-  }
-
-  .panel-head h2 {
-    color: #000;
-  }
-
-  /* The accent is a teal chosen to read against a near-black panel. On paper it
-     is roughly a 2:1 contrast ratio, which is not legible, so the few labels that
-     still print are pulled back to black. */
-  .meter-verdict,
-  .meter-bits,
-  #secret-status {
-    color: #000 !important;
-  }
-
-  .secret {
-    min-height: 0;
-    padding: 0;
-    font-size: 20pt;
-    color: #000;
-    background: #fff;
-    border: 0;
-  }
-
-  .secret .up,
-  .secret .dg,
-  .secret .sy,
-  .secret .ot,
-  .secret .wd {
-    color: #000;
-  }
-
-  .secret .sp {
-    background: none;
-  }
-
-  .stats {
-    border-color: #999;
-    background: #999;
-  }
-
-  .stat {
-    background: #fff;
-  }
-
-  .stat dt {
-    color: #444;
-  }
-
-  .counters {
-    display: none;
+  .secret.is-fresh {
+    animation: none;
   }
 }

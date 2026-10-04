@@ -1644,6 +1644,28 @@ select.text-input {
   .field-row {
     flex-wrap: wrap;
   }
+
+  /*
+   * The figures are not one width. A strong password reads "10^30 years" and a
+   * weak one reads "207,057x the age of the universe" -- 11 characters against
+   * 32, which is 98px against 262px at this type size. A shrink-wrapped column
+   * therefore has to be as wide as the worst figure, and below about 500px that
+   * leaves the label column too narrow to hold even "Online, rate-limited": at a
+   * 380px screen it gets 65px and breaks one word per line.
+   *
+   * So the column stops shrink-wrapping and takes a fixed share instead, and the
+   * figure is allowed to wrap inside it. The label keeps the majority, which is
+   * the right way round: it is the row's key, and its detail sentence is prose
+   * that has somewhere natural to break. Above the breakpoint the figures stay
+   * on one line each, because there is room for them there.
+   *
+   * 42% rather than half, because at 320px the difference is the difference
+   * between the label fitting on one line and not.
+   */
+  .crack .c-time {
+    width: 42%;
+    white-space: normal;
+  }
 }
 
 /* ------------------------------------------------------------------ motion */

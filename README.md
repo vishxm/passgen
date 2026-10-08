@@ -329,6 +329,38 @@ vercel.json           deploy settings and the headers a host must send
 LICENSE               MIT, for this project's own code
 ```
 
+### The night stock, and why there is no toggle for it
+
+The page is cyan-blue ink on paper-white stock, and it is also a blueprint when
+your OS asks for one. A `@media (prefers-color-scheme: dark)` block in
+`src/styles.css` redeclares the `:root` tokens on a deep blue-black stock and
+lightens the ink to meet it. There is no other moving part: no JavaScript, no
+button, no new markup.
+
+**There is deliberately no toggle.** The obvious build — a switch that remembers
+itself — writes the theme to `localStorage`, and this page asserts in its own
+self-test that nothing is stored (`integrity.js`, *Nothing is stored for this
+page*, whose `pass` is `total === 0`). One click of that toggle would turn a
+green row red and falsify the matrix above. `prefers-color-scheme` is a media
+query, not a storage API, so nothing in the receipts panel can ever move. If a
+toggle is ever wanted, the version that keeps the receipts honest is
+`#theme=dark` in the URL fragment — not `localStorage`.
+
+The dark palette was searched rather than eyeballed. The same contrast bars the
+light stock is held to — `--ink-mute` 4.5:1, `--rule-strong` 3:1 — are used as a
+filter, and every dark value clears its light counterpart: `--ink` 15.03 (light
+12.87), `--ink-mute` 6.92 (6.46), `--callout` 7.33 (5.47), `--verified` 7.83
+(5.96), `--rule-strong` 3.32 against the 3:1 non-text requirement.
+
+Two tests hold this up, in the section of `test/build.test.mjs` that exists to
+catch a stylesheet which still parses and has quietly stopped responding:
+
+- the night block redeclares every colour token the day block does, so a token
+  added to one and forgotten in the other cannot ship
+- no hex and no `rgba()` survives outside the two palette blocks, because a
+  `@media` block cannot reach a literal — that is the precondition for the whole
+  approach, and it is why the washes and the grid are tokens too
+
 `src/lib/controls.js` is the reason the control logic is tested at all.
 `src/app.js` is wiring &mdash; it reads elements, calls the generators, writes
 results &mdash; and the rules in between used to sit inline in it, where the only
@@ -398,6 +430,12 @@ Checked on 9 October 2026 against `dist/index.html` with SHA-256
 `960dca4d80eaa0a2f8c40d8cf6b6342850f18de4625fdb3ce0d5843c58c60baa`, from **both**
 `file://` and `http://localhost:8080`. Every cell below was measured in all six
 engine-and-origin combinations and the two origins never disagreed:
+
+> **This table describes the build before dark mode was added**, whose SHA-256 is
+> the one above. The current `dist/index.html` is `3b6c84c577ed435fc32f1b4769c16c9eb70f17c8f48617a7ce2ce1fc769e7971`,
+> and it has been re-measured only in Chromium. Nothing here has been re-run in
+> Firefox or WebKit since the stylesheet changed, so treat those two columns as
+> describing the previous build rather than this one. Re-run before citing them.
 
 | | Chromium 155.0.8059.12 | Firefox 156.0 | WebKit 26.6 |
 | --- | --- | --- | --- |

@@ -405,6 +405,97 @@ select.text-input {
   --ui: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono",
     "Liberation Mono", monospace;
   --display: var(--ui);
+
+  /*
+   * WASHES AND THE GRID. Everything above is opaque; these are the values that
+   * are alpha over --stock, and they exist as tokens for one reason only: a
+   * @media (prefers-color-scheme: dark) block cannot reach a literal. A hex
+   * typed straight into a rule is frozen at the value the light stock needs, and
+   * the night block below would pass right over it without complaint.
+   *
+   * They stay translucent, and they stay *lighter* than the stock in both
+   * palettes, because .deck has no fill at all by design -- the ruling runs
+   * continuously underneath everything. An opaque panel here would turn the
+   * sheet into a card, which is a different design and a worse one.
+   */
+  --sheet-wash: rgba(247, 251, 255, 0.66); /* the deck */
+  /* The bars and the counter cells were one notch more solid than the deck. The
+     gap is invisible, but they were separate numbers before dark mode and
+     folding them together would change the light palette for no gain. */
+  --sheet-bar: rgba(247, 251, 255, 0.7);
+  --sheet-open: rgba(247, 251, 255, 0.94); /* a bar standing open: nearly solid */
+  --hover-stock: #fff; /* .btn:hover lifts to a brighter stock than the page */
+  --ink-wash: rgba(12, 44, 77, 0.05); /* .mode:hover, a whisper of ink */
+  --callout-wash: rgba(10, 99, 184, 0.16); /* the focus ring, and the space mark */
+  --callout-edge: rgba(10, 99, 184, 0.4); /* the underline under a space */
+  --selection: rgba(10, 99, 184, 0.2);
+
+  /* The grid, as ink at two densities. The narrow pair is what the 560px
+     breakpoint swaps in to halve the squares. */
+  --grid-fine: rgba(12, 44, 77, 0.075);
+  --grid-bold: rgba(12, 44, 77, 0.13);
+  --grid-fine-narrow: rgba(12, 44, 77, 0.07);
+  --grid-bold-narrow: rgba(12, 44, 77, 0.12);
+}
+
+/* ------------------------------------------------------------------- night
+ *
+ * THE SAME DRAWING, ON A BLUEPRINT. Not an inverted palette: the stock goes to a
+ * deep blue-black and the ink lightens to meet it, because a blueprint is
+ * cyan-on-dark and that is what this page has always been drawing.
+ *
+ * PLACED HERE, AND NOT ELSEWHERE. It follows the :root block so that every
+ * token it overrides is already defined, and it wins on cascade order alone --
+ * equal specificity, later rule. No attribute selector and no :where() trick, so
+ * there is nothing here that can drift out of step with the block above it.
+ * It is also the whole of the night mode: there is no toggle, because a toggle
+ * that remembered itself would write to localStorage, and this page's own
+ * self-test asserts that nothing is stored (integrity.js, "Nothing is stored for
+ * this page"). Following the OS cannot falsify a receipt.
+ *
+ * THE RATIOS ARE SEARCHED, NOT EYEBALLED. Same bars as the light stock above
+ * --ink-mute 4.5:1, --rule-strong 3:1 -- and every value here clears its light
+ * counterpart: --ink 15.03 (light 12.87), --ink-soft 10.56 (9.90), --ink-mute
+ * 6.92 (6.46), --callout 7.33 (5.47), --verified 7.83 (5.96), and --rule-strong
+ * 3.32 against the 3:1 non-text requirement -- within 0.04 of the light figure.
+ *
+ * The wash alphas were composited against #0a1520 rather than mirrored from the
+ * light values: --sheet-wash at 0.07 lands on #19242f, still a lift, so the grid
+ * keeps showing through the card.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --stock: #0a1520;
+    --stock-deep: #0c1a26;
+    --stock-lift: #152534;
+
+    --ink: #dceaf7;
+    --ink-soft: #a9c8e2;
+    --ink-mute: #7ba3c6;
+
+    --rule: #1d3346;
+    --rule-strong: #466d86;
+
+    --callout: #5aa9f0;
+    --verified: #3fbd96;
+
+    /* The ink is light now, so the text that sits *on* it has to be dark. */
+    --on-focus: #0a1520;
+
+    --sheet-wash: rgba(220, 234, 247, 0.07);
+    --sheet-bar: rgba(220, 234, 247, 0.08);
+    --sheet-open: rgba(220, 234, 247, 0.11);
+    --hover-stock: #1d3244;
+    --ink-wash: rgba(220, 234, 247, 0.07);
+    --callout-wash: rgba(90, 169, 240, 0.22);
+    --callout-edge: rgba(90, 169, 240, 0.5);
+    --selection: rgba(90, 169, 240, 0.26);
+
+    --grid-fine: rgba(220, 234, 247, 0.055);
+    --grid-bold: rgba(220, 234, 247, 0.11);
+    --grid-fine-narrow: rgba(220, 234, 247, 0.05);
+    --grid-bold-narrow: rgba(220, 234, 247, 0.1);
+  }
 }
 
 /* ------------------------------------------------------------------- stock */
@@ -426,15 +517,15 @@ body {
    * square when the type size changes.
    */
   background-image:
-    linear-gradient(rgba(12, 44, 77, 0.075) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(12, 44, 77, 0.075) 1px, transparent 1px),
-    linear-gradient(rgba(12, 44, 77, 0.13) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(12, 44, 77, 0.13) 1px, transparent 1px);
+    linear-gradient(var(--grid-fine) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-fine) 1px, transparent 1px),
+    linear-gradient(var(--grid-bold) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-bold) 1px, transparent 1px);
   background-size: 24px 24px, 24px 24px, 96px 96px, 96px 96px;
 }
 
 ::selection {
-  background: rgba(10, 99, 184, 0.2);
+  background: var(--selection);
 }
 
 h1,
@@ -501,7 +592,7 @@ code {
   position: relative;
   padding: 20px 24px 24px;
   border: 1px solid var(--ink);
-  background: rgba(247, 251, 255, 0.66);
+  background: var(--sheet-wash);
 }
 
 .deck::before {
@@ -571,7 +662,7 @@ code {
 
 .btn:hover {
   color: var(--ink);
-  background: #fff;
+  background: var(--hover-stock);
   border-color: var(--ink);
   border-width: 2px;
   padding: 6px 12px;
@@ -706,8 +797,8 @@ kbd::after {
 
 /* A space has to be visible or a passphrase reads as one word. */
 .secret .sp {
-  background: rgba(10, 99, 184, 0.15);
-  box-shadow: 0 1px 0 rgba(10, 99, 184, 0.4);
+  background: var(--callout-wash);
+  box-shadow: 0 1px 0 var(--callout-edge);
 }
 
 /* One orchestrated moment: a new value is struck onto the sheet. */
@@ -935,11 +1026,14 @@ kbd::after {
 
 .mode:hover {
   color: var(--ink);
-  background: rgba(12, 44, 77, 0.05);
+  background: var(--ink-wash);
 }
 
 .mode[aria-checked="true"] {
-  color: #f7fbff;
+  /* The one hardcoded duplicate of --on-focus this file used to carry. On a dark
+     stock --ink is a light blue, so a literal #f7fbff here put light text on a
+     light ground and the selected tab vanished. */
+  color: var(--on-focus);
   background: var(--ink);
 }
 
@@ -1094,7 +1188,7 @@ input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--callout);
-  box-shadow: 0 0 0 2px rgba(10, 99, 184, 0.16);
+  box-shadow: 0 0 0 2px var(--callout-wash);
 }
 
 input:focus-visible,
@@ -1186,7 +1280,7 @@ select.text-input {
 .advanced,
 .adjust {
   border: 1px solid var(--rule-strong);
-  background: rgba(247, 251, 255, 0.7);
+  background: var(--sheet-bar);
 }
 
 .disclosure > summary,
@@ -1223,7 +1317,7 @@ select.text-input {
 .disclosure[open],
 .advanced[open],
 .adjust[open] {
-  background: rgba(247, 251, 255, 0.94);
+  background: var(--sheet-open);
 }
 
 .disclosure[open] > summary,
@@ -1284,7 +1378,7 @@ select.text-input {
 .counter {
   gap: 3px;
   padding: 10px 11px 11px;
-  background: rgba(247, 251, 255, 0.7);
+  background: var(--sheet-bar);
   border-bottom: 1px solid var(--rule);
   border-right: 1px solid var(--rule);
 }
@@ -1604,10 +1698,10 @@ select.text-input {
    */
   body {
     background-image:
-      linear-gradient(rgba(12, 44, 77, 0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(12, 44, 77, 0.07) 1px, transparent 1px),
-      linear-gradient(rgba(12, 44, 77, 0.12) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(12, 44, 77, 0.12) 1px, transparent 1px);
+      linear-gradient(var(--grid-fine-narrow) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-fine-narrow) 1px, transparent 1px),
+      linear-gradient(var(--grid-bold-narrow) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-bold-narrow) 1px, transparent 1px);
     background-size: 12px 12px, 12px 12px, 48px 48px, 48px 48px;
   }
 

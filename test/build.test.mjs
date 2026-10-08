@@ -300,6 +300,80 @@ test('the stylesheet declares the tokens the structural layer reads', () => {
   }
 });
 
+test('the night block redefines every colour token the day block defines', () => {
+  // Dark mode is one @media (prefers-color-scheme: dark) block that redeclares the
+  // :root tokens, so the two palettes are two copies of the same list and the
+  // failure mode is a token added to one and forgotten in the other. A var() with
+  // no declaration in the night block falls back to the *day* value on a dark
+  // ground: it renders, it builds, it passes every other test here, and it is
+  // invisible in review. This is the check that catches that.
+  //
+  // Two kinds of token are legitimately absent from the night block, and the
+  // second kind is detected rather than listed, because a list would go stale
+  // the next time someone adds an alias.
+  //
+  //   - --page, --ui, --display: a width and two font stacks. Nothing to invert.
+  //   - anything whose value is var(...) rather than a literal. --focus is
+  //     var(--callout), so it follows whatever the night block does to --callout.
+  //     Restating it would be a second copy free to drift out of step.
+  const NOT_A_COLOUR = ['--page', '--ui', '--display'];
+  const isAlias = (token) => new RegExp('^\\s*' + token + ':\\s*var\\(', 'm').test(day[1]);
+
+  const css = readFileSync(join(root, 'src', 'styles.css'), 'utf8');
+  const code = cssCode(css);
+
+  const day = code.match(/:root \{([\s\S]*?)\n\}/);
+  const night = code.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\n {2}\}/);
+  assert.ok(day, 'the day :root block is gone or has been reflowed');
+  assert.ok(night, 'there is no @media (prefers-color-scheme: dark) :root block');
+
+  const tokens = (block) => (block.match(/^\s*(--[a-z-]+):/gm) || []).map((m) => m.trim().slice(0, -1));
+
+  const lightTokens = tokens(day[1]).filter((t) => !NOT_A_COLOUR.includes(t) && !isAlias(t));
+  const darkTokens = tokens(night[1]);
+
+  const missing = lightTokens.filter((t) => !darkTokens.includes(t));
+  assert.deepEqual(
+    missing,
+    [],
+    'these tokens are declared for the day stock but not for the night stock, ' +
+      'so they silently keep their light value on a dark ground: ' + missing.join(', ')
+  );
+
+  // And nothing may appear in the night block alone, which is how a typo like
+  // --ink-mut would hide: it redefines nothing, and the page reads as if it did.
+  const extra = darkTokens.filter((t) => !lightTokens.includes(t) && !NOT_A_COLOUR.includes(t));
+  assert.deepEqual(
+    extra,
+    [],
+    'these tokens are only declared in the night block, so they are undefined on the ' +
+      'day stock and the property silently falls back to its initial value: ' + extra.join(', ')
+  );
+});
+
+test('no colour is written as a literal outside the two palette blocks', () => {
+  // A @media block cannot reach a literal. Every hex and every rgba() below the
+  // :root pair is frozen at the value the day stock needs, and the night block
+  // passes straight over it -- the only symptom is a white hover button or an
+  // invisible mode tab on a dark background. Tokenizing is therefore a
+  // precondition of dark mode working at all, and this is what stops the next
+  // edit from quietly undoing it.
+  const css = readFileSync(join(root, 'src', 'styles.css'), 'utf8');
+  const code = cssCode(css);
+
+  // Everything from the @media block onward is palette, and so is the :root above
+  // it. Slice from the first rule that is not either.
+  const tail = code.slice(code.indexOf('/* ------------------------------------------------------------------- stock */'));
+  const lines = tail.split('\n');
+  lines.forEach((line, i) => {
+    assert.ok(
+      !/rgba?\(/.test(line) && !/#[0-9a-fA-F]{3,8}\b/.test(line),
+      'line ' + (i + 1) + ' of the sheet writes a raw colour: ' + line.trim() +
+        '\n    give it a token, so the night block can reach it'
+    );
+  });
+});
+
 test('the stylesheet fetches nothing', () => {
   const code = cssCode(readFileSync(join(root, 'src', 'styles.css'), 'utf8'));
   assert.ok(!code.includes('@font-face'), 'the stylesheet declares a font face');

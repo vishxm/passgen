@@ -14,12 +14,16 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { loadControls } from './helpers.mjs';
 
 const PG = loadControls();
 const C = PG.controls;
 const G = PG.generators;
 const LIMITS = G.LIMITS;
+const markup = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'index.html'), 'utf8');
 
 /** The options the page would read for password mode, with everything on. */
 function allClasses(overrides = {}) {
@@ -267,18 +271,6 @@ test('presets produce exactly the values they are named for', () => {
     exclude: '',
   });
 
-  assert.deepEqual(C.presetFor('memorable').values, {
-    'length-number': 28,
-    'use-lower': true,
-    'use-upper': false,
-    'use-digits': true,
-    'use-symbols': true,
-    'require-each': true,
-    'no-repeat': false,
-    'exclude-ambiguous': true,
-    exclude: '',
-  });
-
   assert.deepEqual(C.presetFor('maximum').values, {
     'length-number': 64,
     'use-lower': true,
@@ -299,7 +291,7 @@ test('presets produce exactly the values they are named for', () => {
   // had to be exported only so a test could walk it. Naming each preset here is
   // the better trade: the check survives, and a new preset has to be written down
   // to be tested at all.
-  for (const name of ['strong', 'memorable', 'maximum', 'pin8']) {
+  for (const name of ['strong', 'maximum', 'pin8']) {
     const preset = C.presetFor(name);
     const pair = C.RANGE_PAIRS.find((p) => p.number in preset.values);
     if (!pair) continue;
@@ -312,6 +304,26 @@ test('an unknown preset name is null, not a crash', () => {
   assert.equal(C.presetFor('nope'), null);
   assert.equal(C.presetFor(''), null);
   assert.equal(C.presetFor('stronger'), null);
+});
+
+test('every chip in the markup resolves to a preset', () => {
+  // The build tests pair element ids against getElementById() in both directions,
+  // but the chips are wired through querySelectorAll('.chip') and dataset.preset,
+  // so they are invisible to both. A chip naming a preset that is not in the table
+  // renders, takes a click, and does nothing: applyPreset() returns on !preset and
+  // the suite stays green. Removing a preset from PRESETS without removing its chip
+  // is exactly that, and it is why this removal needed four edits rather than one.
+  const chips = [...markup.matchAll(/data-preset="([^"]+)"/g)].map((m) => m[1]);
+
+  assert.ok(chips.length > 0, 'expected the markup to carry at least one preset chip');
+  for (const name of chips) {
+    assert.ok(C.presetFor(name), 'chip ' + name + ' names a preset that is not in the table');
+  }
+
+  // Not the other direction. A table entry with no chip is inert rather than
+  // broken, and the test above names each preset on purpose instead of exporting
+  // PRESETS for a loop to walk -- see the comment in 'presets produce exactly the
+  // values they are named for'.
 });
 
 test('booleans and text values are told apart, so a checkbox is not set to "true"', () => {

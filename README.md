@@ -128,7 +128,7 @@ another tick in that table.
 The whole interface is one card, 720px wide, and it reads in the order you
 actually use it:
 
-1. **What kind of thing** &mdash; four modes, then four presets.
+1. **What kind of thing** &mdash; four modes, then three presets.
 2. **The thing** &mdash; the plate.
 3. **What it is** &mdash; one line under the plate naming the count and the
    character classes it drew from. This is the *hinge*, and it is the only

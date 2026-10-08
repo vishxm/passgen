@@ -148,14 +148,6 @@
         'exclude-ambiguous': false, exclude: '',
       },
     },
-    memorable: {
-      mode: 'password',
-      values: {
-        'length-number': 28, 'use-lower': true, 'use-upper': false, 'use-digits': true,
-        'use-symbols': true, 'require-each': true, 'no-repeat': false,
-        'exclude-ambiguous': true, exclude: '',
-      },
-    },
     maximum: {
       mode: 'password',
       values: {

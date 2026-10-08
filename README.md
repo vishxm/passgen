@@ -128,7 +128,7 @@ another tick in that table.
 The whole interface is one card, 720px wide, and it reads in the order you
 actually use it:
 
-1. **What kind of thing** &mdash; four modes, then four presets.
+1. **What kind of thing** &mdash; four modes, then three presets.
 2. **The thing** &mdash; the plate.
 3. **What it is** &mdash; one line under the plate naming the count and the
    character classes it drew from. This is the *hinge*, and it is the only
@@ -394,17 +394,19 @@ script. `node --test` loads them by lending them a `window`.
 
 ### Which browsers this has actually been run in
 
-Checked on 3 October 2026 against `dist/index.html` with SHA-256
-`d4490aa0e306cb09b34121b2610007525cf9ffe047ad4c64ba333fd4f75956ce`, from **both**
-`file://` and `http://localhost:8080`:
+Checked on 9 October 2026 against `dist/index.html` with SHA-256
+`960dca4d80eaa0a2f8c40d8cf6b6342850f18de4625fdb3ce0d5843c58c60baa`, from **both**
+`file://` and `http://localhost:8080`. Every cell below was measured in all six
+engine-and-origin combinations and the two origins never disagreed:
 
-| | Chromium 153.0.8010.12 | Firefox 155.0 | WebKit 26.6 |
+| | Chromium 155.0.8059.12 | Firefox 156.0 | WebKit 26.6 |
 | --- | --- | --- | --- |
-| Loads, generates, no console errors of its own | yes | yes | yes |
+| Loads, generates | yes | yes | yes |
+| Console errors of its own | none | none | one, and see below |
 | *Storage writes* 0 at load, after 20 regenerates, after all four modes, after the self-test | yes | yes | yes |
 | Four presses of Copy, *storage writes* still 0, no keys, no cookie | yes | yes | yes |
 | Self-test | 9 / 9 | 9 / 9 | 9 / 9 |
-| *Blocked by policy* | 5 of 6 attempts | 5 of 6 | 5 of 6 |
+| *Blocked by policy* | 5 of 6 attempts | 5 of 6 | 6 of 6 |
 | Hash lock holds against a one-byte edit | yes | yes | yes |
 | 390 px wide, no horizontal overflow | yes | yes | yes |
 
@@ -413,22 +415,56 @@ binary as Safari.app. Safari itself is untested here: it gates the clipboard on 
 user gesture and has its own `file://` behaviour, and it cannot be driven
 headlessly. Assume nothing about Safari that is not in the table.
 
+**WebKit logs one console message, and does not act on it.** The message is
+`Refused to apply a stylesheet because its hash ... does not appear in the
+style-src directive`. The sheet is applied anyway: the card measures 720 px, the
+body keeps its monospace stack, and the generator runs. The hash is not wrong
+&mdash; `sha256` of the inline `<style>` text is byte-for-byte the value in the
+policy, checked by hand. Two candidate causes were ruled out by rebuilding the
+page with a recomputed hash each time: the one non-ASCII character in the sheet
+(`U+00B7`) is not it, and neither is the trailing newline. What does reproduce
+the refusal is genuinely altering the bytes &mdash; converting the sheet to CRLF
+leaves WebKit with **no** stylesheet, a full-width card and the default font.
+
+That contrast is the point: the enforcement is real, so the message in the
+normal case is WebKit declining to enforce rather than a policy quietly skipped.
+A stricter cell would say "yes"; a truthful one says this.
+
+**Why *Blocked by policy* reads 6 of 6 on WebKit and 5 of 6 elsewhere.** The
+counter tallies the browser's own refusal events, and the engines disagree about
+which of the six escape attempts emit one. All three report the same thing for
+the WebSocket probe &mdash; `refused without a violation event, so the refusal is
+the evidence` &mdash; so the six escapes are genuinely refused everywhere. The
+security claim is the **9 / 9** row; this row is about how faithfully each engine
+reports its own refusals.
+
 **Positive controls.** "Storage writes stayed 0" would also be what a broken
 counter reads. So from inside each page, deliberately writing to `localStorage`,
 `sessionStorage`, `document.cookie` and back again moves *storage writes* from 0
-to 6, split correctly across the four channels, in all three engines. A refused
-`fetch` outside the self-test moves *network calls* from 0 to 1. The particular
-worry in `src/lib/integrity.js` &mdash; that Firefox hands back a fresh
+to 6, split correctly across the three channels that actually see a call
+(`storage.setItem` 2, `storage.removeItem` 2, `document.cookie` 2 &mdash; both
+stores share one `Storage.prototype` patch, so they are counted as one channel
+each, not two), in all three engines. A refused `fetch` outside the self-test
+moves *network calls* from 0 to 1, in all three. The particular worry in
+`src/lib/integrity.js` &mdash; that Firefox hands back a fresh
 `window.localStorage` wrapper and silently discards a patch on the instance
 &mdash; does not apply: the patch is on `Storage.prototype`, and re-reading
 `window.localStorage` returns the same wrapped `setItem` in every engine tested.
 
-**One number that reads unexpectedly.** On Chromium over `file://`,
-`navigator.clipboard.writeText` is refused (`NotAllowedError`), so **Copy** falls
-back to `document.execCommand`. Both are clipboard writes and both are counted,
-so four presses read **8** there instead of 4. Nothing is misfiled: *storage
-writes* stays 0. It is the count of calls made to a clipboard API, not the count
-of successful pastes.
+Both controls have to be read **after** the counters repaint. They are written by
+a 1 Hz `setInterval` in `src/app.js`, so a probe followed by an immediate read
+sees the previous tick and looks like a dead counter. Reading too early made a
+working counter read 0 in two of three engines before this was pinned down.
+
+**One number not reproduced this round.** An earlier version of this table noted
+that on Chromium over `file://`, `navigator.clipboard.writeText` is refused
+(`NotAllowedError`), so **Copy** falls back to `document.execCommand`, both are
+counted, and four presses read **8** instead of 4. This run recorded **4** on
+every engine and origin, because the harness granted `clipboard-read` and
+`clipboard-write` to the browser context, which a user double-clicking the file
+does not get. So that behaviour is **untested here, not refuted**: the fallback
+is still in `src/app.js`, and reproducing it needs a run without the permission
+grant.
 
 ---
 

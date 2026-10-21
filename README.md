@@ -126,8 +126,8 @@ another tick in that table.
 
 ## One window, in causal order
 
-The whole interface is one terminal window, 780px wide, and it reads in the order you
-actually use it:
+The whole interface is one terminal window, 780px wide, and it reads in the
+order you actually use it:
 
 1. **What kind of thing** &mdash; four modes, then three presets.
 2. **The thing** &mdash; the plate.
@@ -508,10 +508,10 @@ working counter read 0 in two of three engines before this was pinned down.
 no clipboard permission granted, `navigator.clipboard.writeText` is refused
 (`NotAllowedError`), so **Copy** falls back to `document.execCommand`, both are
 counted, and four presses read **8** instead of 4. That is the number measured
-this round. Over `http://localhost:8080`, with `clipboard-read` and
+this round. Over `http://localhost:8080` in Chromium, with `clipboard-read` and
 `clipboard-write` granted to the context, the same four presses read **4**.
 Firefox and WebKit do not implement those permission names in Playwright, so they
-ran without a grant and still read **4** on the click gesture. A user
+ran without a grant and still read **4** on the click gesture. A Chromium user
 double-clicking the file gets the 8 count; a visitor on the served page gets 4.
 
 ---

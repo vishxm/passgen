@@ -454,7 +454,7 @@ the table:
 `tools/browser-matrix.sh` reproduces this table. It installs Playwright into a
 temporary directory and removes it on exit, so the repository keeps its empty
 `dependencies` block and `npm run check` still needs nothing but Node. The title
-bar measured 8.48:1 in the day stock and 12.95:1 at night in every engine.
+bar measured 8.48:1 in the day palette and 12.95:1 at night in every engine.
 
 The build of WebKit above is the one Playwright ships, which is not the same
 binary as Safari.app. Safari itself is untested here: it gates the clipboard on a
@@ -466,11 +466,12 @@ headlessly. Assume nothing about Safari that is not in the table.
 style-src directive`. The sheet is applied anyway: the window measures 780 px, the
 body keeps its monospace stack, and the generator runs. The hash is not wrong
 &mdash; `sha256` of the inline `<style>` text is byte-for-byte the value in the
-policy, checked by hand. Two candidate causes were ruled out by rebuilding the
-page with a recomputed hash each time: the one non-ASCII character in the sheet
-(`U+00B7`) is not it, and neither is the trailing newline. What does reproduce
-the refusal is genuinely altering the bytes &mdash; converting the sheet to CRLF
-leaves WebKit with **no** stylesheet, a full-width window and the default font.
+policy, and `npm run verify` re-checks it. Two candidate causes were ruled out by
+rebuilding the page with a recomputed hash each time: the one non-ASCII character
+in the sheet (`U+00B7`) is not it, and neither is the trailing newline. An earlier
+run found that what does reproduce the refusal is genuinely altering the bytes
+&mdash; converting the sheet to CRLF leaves WebKit with **no** stylesheet, a
+full-width window and the default font.
 
 That contrast is the point: the enforcement is real, so the message in the
 normal case is WebKit declining to enforce rather than a policy quietly skipped.

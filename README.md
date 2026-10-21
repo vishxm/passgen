@@ -525,9 +525,12 @@ kept at `src/data/eff_large_wordlist.txt`; `npm run wordlist` regenerates the
 embedded copy and fails loudly if the word count is not exactly 7776, because
 Diceware indices depend on it.
 
-This project's own code is MIT licensed; see `LICENSE`, which also states
-plainly that the MIT terms do not extend to the word list. That attribution is
-repeated in the page's own colophon and must stay with any redistribution of the
-list, whichever licence covers the code around it.
+This project's own code is MIT licensed; see `LICENSE` for the canonical MIT
+text. The MIT terms do not extend to the embedded word list in
+`src/lib/wordlist.js` or the raw list in `src/data/eff_large_wordlist.txt`:
+that list is Joseph Bonneau's EFF Long Wordlist under CC BY 3.0, attributed
+above. That attribution is repeated in the page's own colophon and must stay
+with any redistribution of the list, whichever licence covers the code around
+it.
 
 Everything else is in this repository, and there are no dependencies to audit.

@@ -183,9 +183,11 @@ main {
   flex: none;
 }
 
-/* Regenerate and Copy share the width equally. */
+/* Regenerate and Copy share the width equally. Clear clip is conditional, so
+   the row has to wrap rather than force the window wider when it appears. */
 .actions {
   display: flex;
+  flex-wrap: wrap;
 }
 
 .actions .btn {
@@ -346,59 +348,52 @@ select.text-input {
 
 /* ================================================================== the design
  *
- * THE IDEA. A password is a specification with an uncertainty attached to it, so
- * this page draws it that way. Everything is dimensioned, everything is on the
- * grid, and the strength gauge is a measured span with ticks and a dimension
- * witness line rather than a bar that fills up. Mono throughout, because a
- * drafting sheet has one hand; the labels are uppercase because a drawing's
- * annotations are uppercase, and they are the same mono at a smaller size because
- * a drawing has no second typeface either.
+ * THE IDEA. This program talks to nothing, so the page is the one place it *does*
+ * talk: a terminal. One window, one prompt, one output block, and a receipt strip
+ * that reads like the last line of output. The stock is a phosphor field --
+ * near-black with a green trace -- and the day stock is the same screen with the
+ * backlight up. Everything is mono, because a terminal has one face; the one
+ * accent is the phosphor green, because a terminal has one colour.
  *
- * THE GRID IS LOAD-BEARING. A 24px square in 12% cyan over a paper-white stock,
- * with a heavier line every 96px -- four small squares, the way real graph paper
- * is ruled. It is drawn with two gradients rather than an image because img-src
- * allows only inline bytes and a repeating tile would be neither. The grid is what
- * ties a 0-radius layout together: with no rounding and no shadow to soften the
- * boxes, without a grid on the page the whole thing would read as a form.
+ * THE CHROME IS THE METAPHOR. A title bar with three dots, a prompt line that
+ * reads `you@machine$ passgen`, and a footer that reports `0 network calls`. The
+ * page stops explaining that it makes no network calls and starts showing it as
+ * output, which is where a claim like that belongs.
  *
- * WHY CYAN-BLUE INK RATHER THAN PENCIL. Graph paper is blue, so every line drawn
- * on it inherits the paper. A graphite page would be a different and more obvious
- * design; cyan is the colour that only works because the grid is there to justify
- * it, and it makes the whole page feel like one drawing rather than a form with
- * blue text in it.
+ * WHY SCANLINES AND NOT A GRID. The blueprint design was ruled graph paper,
+ * because a drawing is measured. A terminal is not measured, it is traced: a
+ * 3px scanline across the field, drawn with one gradient, is the one ornament
+ * here and it is the whole metaphor made visible.
  *
- * THE GAUGE IS A DIMENSION LINE. Two witness lines at each end, an arrowed span
- * between them, and a centred break in the rule at the 60-bit mark -- the place
- * where guessing stops being the threat is a change in the drawing, not a
- * differently-coloured bar. That is the one ornament on the page and it is the
- * whole metaphor made visible.
+ * NO ROUNDING, NO SHADOWS, NO SECOND FACE. The window is a rectangle with a 1px
+ * rule, the buttons are rectangles that invert, the gauge is a bar. A terminal is
+ * flat by construction, and a shadow on a terminal window would be the one
+ * lighting cue this design does not have.
  */
 
 :root {
-  /* Stock: paper, ruled. */
-  --stock: #eef5fb;
-  --stock-deep: #e2ecf6; /* recessed: the plate, the gauge track, code */
-  --stock-lift: #f7fbff; /* raised: inputs, chips, disclosure bars */
+  /* Stock: a phosphor field. Day is the same screen with the backlight up. */
+  --stock: #f4f2ea;
+  --stock-deep: #e9e6db; /* recessed: the output block, the gauge track */
+  --stock-lift: #fcfbf6; /* raised: inputs, chips, buttons */
 
-  /* Ink: cyan-blue, at three densities rather than three hues, so the page reads
-     as one drawing ink at different strengths. --ink-mute clears 4.5:1 on
-     --stock-lift (6.5:1). */
-  --ink: #0c2c4d;
-  --ink-soft: #1d4a75;
-  --ink-mute: #2f5f8a;
+  /* Ink: near-black green, at three densities rather than three hues. */
+  --ink: #14231a;
+  --ink-soft: #2b4436;
+  --ink-mute: #5c7264;
 
-  /* Rules. The 5mm blue line is --rule-strong and clears 3:1 on stock (3.3:1). */
-  --rule: #b8d2e8;
-  --rule-strong: #5d8bb5;
+  /* Rules. */
+  --rule: #cdc9b8;
+  --rule-strong: #8e8a78;
 
-  /* One spot: the drafting blue, darker than the ink, for callouts. */
-  --callout: #0a63b8;
-  --verified: #0d6a52; /* "dimensioned and confirmed", which is what a count is */
+  /* The phosphor: one accent, used for the trace, the marks and the figures. */
+  --callout: #14662f;
+  --verified: #14662f;
 
-  --page: 720px;
+  --page: 780px;
 
   --focus: var(--callout);
-  --on-focus: #f7fbff;
+  --on-focus: #fcfbf6;
 
   /* One face. ui-monospace resolves to SF Mono on Apple, Cascadia Mono on
      Windows, DejaVu Sans Mono on Linux; all three are drawn at these sizes. */
@@ -407,101 +402,78 @@ select.text-input {
   --display: var(--ui);
 
   /*
-   * WASHES AND THE GRID. Everything above is opaque; these are the values that
-   * are alpha over --stock, and they exist as tokens for one reason only: a
-   * @media (prefers-color-scheme: dark) block cannot reach a literal. A hex
-   * typed straight into a rule is frozen at the value the light stock needs, and
-   * the night block below would pass right over it without complaint.
+   * WASHES. Everything above is opaque; these are the values that are alpha over
+   * --stock, and they exist as tokens for one reason only: a @media
+   * (prefers-color-scheme: dark) block cannot reach a literal. A hex typed
+   * straight into a rule is frozen at the value the day stock needs, and the
+   * night block below would pass right over it without complaint.
    *
    * They stay translucent, and they stay *lighter* than the stock in both
-   * palettes, because .deck has no fill at all by design -- the ruling runs
-   * continuously underneath everything. An opaque panel here would turn the
-   * sheet into a card, which is a different design and a worse one.
+   * palettes. The window itself is opaque, so these washes sit on the terminal
+   * screen rather than on the body's scanline field: the deck is a lighter patch
+   * of the screen, not a card laid over it. An opaque panel here would split the
+   * screen into card and page, which is a different design and a worse one.
    */
-  --sheet-wash: rgba(247, 251, 255, 0.66); /* the deck */
-  /* The bars and the counter cells were one notch more solid than the deck. The
-     gap is invisible, but they were separate numbers before dark mode and
-     folding them together would change the light palette for no gain. */
-  --sheet-bar: rgba(247, 251, 255, 0.7);
-  --sheet-open: rgba(247, 251, 255, 0.94); /* a bar standing open: nearly solid */
-  --hover-stock: #fff; /* .btn:hover lifts to a brighter stock than the page */
-  --ink-wash: rgba(12, 44, 77, 0.05); /* .mode:hover, a whisper of ink */
-  --callout-wash: rgba(10, 99, 184, 0.16); /* the focus ring, and the space mark */
-  --callout-edge: rgba(10, 99, 184, 0.4); /* the underline under a space */
-  --selection: rgba(10, 99, 184, 0.2);
+  --sheet-wash: rgba(252, 251, 246, 0.7); /* the deck */
+  --sheet-bar: rgba(252, 251, 246, 0.75);
+  --sheet-open: rgba(252, 251, 246, 0.95); /* a bar standing open */
+  --callout-wash: rgba(20, 102, 47, 0.15); /* the focus ring, and the space mark */
+  --callout-edge: rgba(20, 102, 47, 0.45); /* the underline under a space */
+  --selection: rgba(20, 102, 47, 0.2);
 
-  /* The grid, as ink at two densities. The narrow pair is what the 560px
-     breakpoint swaps in to halve the squares. */
-  --grid-fine: rgba(12, 44, 77, 0.075);
-  --grid-bold: rgba(12, 44, 77, 0.13);
-  --grid-fine-narrow: rgba(12, 44, 77, 0.07);
-  --grid-bold-narrow: rgba(12, 44, 77, 0.12);
+  /* The scanline field, as ink at two densities. */
+  --scan: rgba(20, 35, 26, 0.045);
 }
 
 /* ------------------------------------------------------------------- night
  *
- * THE SAME DRAWING, ON A BLUEPRINT. Not an inverted palette: the stock goes to a
- * deep blue-black and the ink lightens to meet it, because a blueprint is
- * cyan-on-dark and that is what this page has always been drawing.
+ * THE SAME SCREEN, PHOSPHOR UP. Not an inverted palette: the stock goes to a
+ * near-black green and the ink lightens to meet it, because a terminal is
+ * green-on-dark and that is what this page has always been drawing.
  *
- * PLACED HERE, AND NOT ELSEWHERE. It follows the :root block so that every
- * token it overrides is already defined, and it wins on cascade order alone --
- * equal specificity, later rule. No attribute selector and no :where() trick, so
- * there is nothing here that can drift out of step with the block above it.
- * It is also the whole of the night mode: there is no toggle, because a toggle
- * that remembered itself would write to localStorage, and this page's own
- * self-test asserts that nothing is stored (integrity.js, "Nothing is stored for
- * this page"). Following the OS cannot falsify a receipt.
- *
- * THE RATIOS ARE SEARCHED, NOT EYEBALLED. Same bars as the light stock above
- * --ink-mute 4.5:1, --rule-strong 3:1 -- and every value here clears its light
- * counterpart: --ink 15.03 (light 12.87), --ink-soft 10.56 (9.90), --ink-mute
- * 6.92 (6.46), --callout 7.33 (5.47), --verified 7.83 (5.96), and --rule-strong
- * 3.32 against the 3:1 non-text requirement -- within 0.04 of the light figure.
- *
- * The wash alphas were composited against #0a1520 rather than mirrored from the
- * light values: --sheet-wash at 0.07 lands on #19242f, still a lift, so the grid
- * keeps showing through the card.
+ * PLACED HERE, AND NOT ELSEWHERE. It follows the :root block so that every token
+ * it overrides is already defined, and it wins on cascade order alone -- equal
+ * specificity, later rule. No attribute selector and no :where() trick, so there
+ * is nothing here that can drift out of step with the block above it. It is also
+ * the whole of the night mode: there is no toggle, because a toggle that
+ * remembered itself would write to localStorage, and this page's own self-test
+ * asserts that nothing is stored (integrity.js, "Nothing is stored for this
+ * page"). Following the OS cannot falsify a receipt.
  */
 @media (prefers-color-scheme: dark) {
   :root {
-    --stock: #0a1520;
-    --stock-deep: #0c1a26;
-    --stock-lift: #152534;
+    --stock: #050806;
+    --stock-deep: #080d09;
+    --stock-lift: #0e1410;
 
-    --ink: #dceaf7;
-    --ink-soft: #a9c8e2;
-    --ink-mute: #7ba3c6;
+    --ink: #d9f5e1;
+    --ink-soft: #a5dfbc;
+    --ink-mute: #76b78e;
 
-    --rule: #1d3346;
-    --rule-strong: #466d86;
+    --rule: #1b2b20;
+    --rule-strong: #4a7355;
 
-    --callout: #5aa9f0;
-    --verified: #3fbd96;
+    --callout: #46e07f;
+    --verified: #46e07f;
 
     /* The ink is light now, so the text that sits *on* it has to be dark. */
-    --on-focus: #0a1520;
+    --on-focus: #050806;
 
-    --sheet-wash: rgba(220, 234, 247, 0.07);
-    --sheet-bar: rgba(220, 234, 247, 0.08);
-    --sheet-open: rgba(220, 234, 247, 0.11);
-    --hover-stock: #1d3244;
-    --ink-wash: rgba(220, 234, 247, 0.07);
-    --callout-wash: rgba(90, 169, 240, 0.22);
-    --callout-edge: rgba(90, 169, 240, 0.5);
-    --selection: rgba(90, 169, 240, 0.26);
+    --sheet-wash: rgba(217, 245, 225, 0.05);
+    --sheet-bar: rgba(217, 245, 225, 0.06);
+    --sheet-open: rgba(217, 245, 225, 0.09);
+    --callout-wash: rgba(70, 224, 127, 0.16);
+    --callout-edge: rgba(70, 224, 127, 0.5);
+    --selection: rgba(70, 224, 127, 0.25);
 
-    --grid-fine: rgba(220, 234, 247, 0.055);
-    --grid-bold: rgba(220, 234, 247, 0.11);
-    --grid-fine-narrow: rgba(220, 234, 247, 0.05);
-    --grid-bold-narrow: rgba(220, 234, 247, 0.1);
+    --scan: rgba(217, 245, 225, 0.035);
   }
 }
 
 /* ------------------------------------------------------------------- stock */
 
 body {
-  --page: 720px;
+  --page: 780px;
   padding: 28px 22px 64px;
   max-width: calc(var(--page) + 44px);
   margin-inline: auto;
@@ -511,17 +483,12 @@ body {
   color: var(--ink);
   background-color: var(--stock);
   /*
-   * Graph paper: a 12px square, with a heavier line every 96px. Two gradient
-   * pairs, one set per axis, because a single gradient can only draw one line and
-   * the sheet needs two scales. Sized in px rather than in em so the squares stay
-   * square when the type size changes.
+   * The scanline field: one 1px trace every 3px, drawn with a single gradient
+   * rather than an image because img-src allows only inline bytes and a
+   * repeating tile would be neither.
    */
-  background-image:
-    linear-gradient(var(--grid-fine) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-fine) 1px, transparent 1px),
-    linear-gradient(var(--grid-bold) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-bold) 1px, transparent 1px);
-  background-size: 24px 24px, 24px 24px, 96px 96px, 96px 96px;
+  background-image: linear-gradient(var(--scan) 1px, transparent 1px);
+  background-size: 100% 3px;
 }
 
 ::selection {
@@ -549,12 +516,69 @@ code {
   border: 1px solid var(--rule);
 }
 
+/* ------------------------------------------------------------- the window */
+
+/*
+ * THE WINDOW. A rectangle with a 1px rule and a title bar. No rounding and no
+ * shadow: a terminal window is a flat surface, and the only depth cue here is
+ * the recessed title bar.
+ */
+.term {
+  border: 1px solid var(--rule-strong);
+  background: var(--stock);
+}
+
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--stock-deep);
+}
+
+/* The three dots are one accent at three densities, because a terminal has one
+   colour and the chrome should not invent a second. */
+.tl-dot {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--callout);
+}
+
+.tl-y {
+  opacity: 0.45;
+}
+
+.tl-g {
+  opacity: 0.7;
+}
+
+.term-title {
+  margin-left: 8px;
+  font-family: var(--ui);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.term-hint {
+  margin-left: auto;
+  font-family: var(--ui);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.term-body {
+  display: block;
+}
+
 /* --------------------------------------------------------------- masthead */
 
 .masthead {
-  padding-bottom: 12px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid var(--ink);
+  padding: 20px 24px 15px;
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .brand {
@@ -563,7 +587,7 @@ code {
   gap: 11px;
 }
 
-/* The mark is the drawing-office title block glyph, in the callout blue. */
+/* The mark is the shell prompt glyph, in the phosphor. */
 .brand-mark {
   font-family: var(--ui);
   font-size: 19px;
@@ -580,69 +604,46 @@ code {
   letter-spacing: 0.2em;
 }
 
+/*
+ * THE PROMPT LINE. The one line of the interface that is not a control: it says
+ * what was typed, and it wraps rather than scrolling, because a command the user
+ * cannot read is not a command.
+ */
+.term-prompt {
+  margin-top: 12px;
+  font-family: var(--ui);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+  overflow-wrap: anywhere;
+}
+
+.term-user {
+  color: var(--callout);
+}
+
+.term-path {
+  color: var(--ink);
+}
+
 /* ------------------------------------------------------------------ layout */
 
 /*
- * THE SHEET. A drawn frame with corner ticks, sitting on the grid: no fill at all
- * on the card itself, so the ruling runs continuously underneath everything. A
- * filled card would be a panel; a frame with ticks at its corners is a drawing
- * extent, which is what this page is.
+ * THE OUTPUT AREA. The deck is the terminal's output block: a translucent wash
+ * over the window's stock rather than an opaque panel, so the screen stays one
+ * surface. A filled card would break it into chrome and content.
  */
 .deck {
-  position: relative;
-  padding: 20px 24px 24px;
-  border: 1px solid var(--ink);
+  padding: 22px 24px 26px;
   background: var(--sheet-wash);
-}
-
-.deck::before {
-  /* The sheet number, drawn as an index tab on the top edge at the left. */
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: 18px;
-  width: 44px;
-  height: 4px;
-  background: var(--callout);
-}
-
-.deck::after {
-  /* Corner ticks: eight 12px marks at the four corners, inside the frame. A
-     drawing marks its extent at the corners rather than along the edges, and here
-     that distinction is the difference between a sheet of paper and a table cell. */
-  content: "";
-  position: absolute;
-  inset: 5px;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--ink), var(--ink)),
-    linear-gradient(var(--ink), var(--ink)),
-    linear-gradient(var(--ink), var(--ink)),
-    linear-gradient(var(--ink), var(--ink)),
-    linear-gradient(var(--ink), var(--ink)),
-    linear-gradient(var(--ink), var(--ink)),
-    linear-gradient(var(--ink), var(--ink)),
-    linear-gradient(var(--ink), var(--ink));
-  background-size: 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px;
-  background-position:
-    left top,
-    left top,
-    right top,
-    right top,
-    left bottom,
-    left bottom,
-    right bottom,
-    right bottom;
-  background-repeat: no-repeat;
-  opacity: 0.55;
 }
 
 /* ----------------------------------------------------------------- buttons */
 
 /*
- * Buttons are drawing-office callouts: a label in a box, uppercase, with the box
- * drawn in the rule colour rather than the ink. Hover thickens the box rather than
- * filling it, because nothing on this sheet is filled.
+ * Buttons are commands, not callouts: a label in a box that inverts when you
+ * point at it, the way a terminal selection inverts. Nothing on this screen is
+ * filled except the primary action.
  */
 .btn {
   gap: 7px;
@@ -656,26 +657,20 @@ code {
   color: var(--ink);
   background: var(--stock-lift);
   border: 1px solid var(--rule-strong);
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease,
-    border-width 120ms ease;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
 .btn:hover {
-  color: var(--ink);
-  background: var(--hover-stock);
-  border-color: var(--ink);
-  border-width: 2px;
-  padding: 6px 12px;
+  color: var(--on-focus);
+  background: var(--callout);
+  border-color: var(--callout);
 }
 
 .btn:active {
   background: var(--stock-deep);
 }
 
-/*
- * The primary action is the one filled box on the sheet, in the callout blue. On a
- * drawing a filled box means "this is the dimension that matters", and this is it.
- */
+/* The primary action is the one filled box on the screen, in the phosphor. */
 .btn-primary {
   color: var(--on-focus);
   background: var(--callout);
@@ -686,8 +681,6 @@ code {
   color: var(--on-focus);
   background: var(--callout);
   border-color: var(--callout);
-  border-width: 1px;
-  padding: 7px 13px;
 }
 
 .btn-quiet {
@@ -697,16 +690,15 @@ code {
 }
 
 .btn-quiet:hover {
-  color: var(--ink);
-  border-color: var(--ink);
+  color: var(--on-focus);
+  background: var(--callout);
+  border-color: var(--callout);
 }
 
 .btn[aria-pressed="true"] {
-  color: var(--callout);
-  background: var(--stock-lift);
+  color: var(--on-focus);
+  background: var(--callout);
   border-color: var(--callout);
-  border-width: 2px;
-  padding: 6px 12px;
 }
 
 .btn:disabled {
@@ -716,8 +708,7 @@ code {
   cursor: default;
 }
 
-/* The shortcut is a bracketed reference, the way a drawing annotates a keyboard
-   equivalent in its title block. */
+/* The shortcut is a bracketed key, the way a shell annotates a binding. */
 kbd {
   padding: 0 2px;
   font-family: var(--ui);
@@ -739,10 +730,10 @@ kbd::after {
 /* ------------------------------------------------------------- the plate */
 
 /*
- * THE PLATE. A boxed note on the drawing, recessed by a blue tint rather than a
- * shadow -- shadows would be the one lighting cue this design does not have. The
- * secret is set in the drawing's own mono at display size, because a value on a
- * drawing is always monospaced: it has to line up with the tick marks beside it.
+ * THE OUTPUT BLOCK. The secret is what the command printed, so it sits in the
+ * recessed field at display size in the terminal's own mono. The phosphor wash
+ * behind it is the one glow on the page: a value this important is the one
+ * thing allowed to look like it is lit.
  */
 .secret {
   display: block;
@@ -758,17 +749,18 @@ kbd::after {
   color: var(--ink);
   background: var(--stock-deep);
   border: 1px solid var(--rule-strong);
+  text-shadow: 0 0 10px var(--callout-wash);
 }
 
 /*
- * Character classes, told apart by weight and by one darker ink. A drawing has no
- * colour vocabulary beyond the ink it is drawn in, so the signals are density and
- * a step darker -- and they survive being reproduced on a monochrome printer,
- * which is the only printer a drafting office has.
+ * Character classes, told apart by weight and by one brighter ink. A terminal
+ * has no colour vocabulary beyond the phosphor, so the signals are density and a
+ * step brighter -- and they survive being reproduced on a monochrome printer,
+ * which is the only printer a terminal has.
  *   lowercase  regular
  *   uppercase  bold
- *   digits     callout blue
- *   symbols    callout blue, bold
+ *   digits     phosphor
+ *   symbols    phosphor, bold
  */
 .secret .up {
   font-weight: 700;
@@ -801,8 +793,8 @@ kbd::after {
   box-shadow: 0 1px 0 var(--callout-edge);
 }
 
-/* One orchestrated moment: a new value is struck onto the sheet. */
-@keyframes blueprint-strike {
+/* One orchestrated moment: a new value is traced onto the screen. */
+@keyframes phosphor-trace {
   from {
     opacity: 0.2;
     transform: translateX(-3px);
@@ -814,10 +806,10 @@ kbd::after {
 }
 
 .secret.is-fresh {
-  animation: blueprint-strike 170ms ease-out;
+  animation: phosphor-trace 170ms ease-out;
 }
 
-/* The hinge is a dimension note: what was actually drawn, in what quantity. */
+/* The hinge is the command's own summary line: what was printed, in what quantity. */
 .hinge {
   margin-top: 11px;
   padding-left: 10px;
@@ -874,15 +866,10 @@ kbd::after {
 /* ------------------------------------------------------------------ gauge */
 
 /*
- * THE DIMENSION LINE. This is the ornament. Two witness lines at the ends of the
- * track, the span drawn between them, an arrowhead at the leading end, and a break
- * in the rule at the 60-bit mark -- the place where guessing stops being the
- * threat is drawn as a change in the dimension line, not as a different colour.
- *
- * The witness lines are the .meter-scale's ticks (the five bit boundaries, at
- * their exact uneven positions) plus two end caps. The arrow is the meter-track's
- * own border, and the leading end cap is a 3px gradient stop on the fill's box
- * shadow -- four elements drawing one thing, which is what a dimension line is.
+ * THE BAR. Where the blueprint drew a dimension line with witness ticks, a
+ * terminal draws a bar: a rule, a filled span, and the scale above it. The
+ * witness ticks survive as the scale, because the bit boundaries are real
+ * readings and not decoration.
  */
 .verdict {
   margin-top: 20px;
@@ -942,24 +929,17 @@ kbd::after {
   );
 }
 
-/*
- * The rule the span is measured against. Dashed, because on a drawing a dimension
- * is measured against an extension line rather than against a solid edge.
- */
+/* The rule the span is measured against: a recessed track, not a solid edge. */
 .meter-track {
-  height: 12px;
-  border: 1px solid var(--ink);
-  background: transparent;
-  box-shadow: inset 0 0 0 3px var(--stock);
+  height: 14px;
+  border: 1px solid var(--rule-strong);
+  background: var(--stock-deep);
 }
 
 .meter-fill {
   width: var(--fill, 0%);
   height: 100%;
   background: var(--ink-soft);
-  /* The arrowhead at the leading end: three 1px stops fanning into a point,
-     drawn as an inset shadow on the leading edge of the span. */
-  box-shadow: inset -3px 0 0 -1px var(--ink), inset -5px 0 0 -2px var(--ink);
   transition: width 200ms ease, background-color 200ms ease;
 }
 
@@ -995,8 +975,9 @@ kbd::after {
 /* ---------------------------------------------------------------- settings */
 
 /*
- * Mode tabs are four cells in one box, sharing the dividers. The selected one is
- * the callout blue, because on a drawing a selected element is marked, not filled.
+ * Mode tabs are the flags of the command: four cells in one box, sharing the
+ * dividers. The selected one is the phosphor, because a terminal marks the
+ * active flag by inverting it.
  */
 .modes {
   gap: 0;
@@ -1025,16 +1006,13 @@ kbd::after {
 }
 
 .mode:hover {
-  color: var(--ink);
-  background: var(--ink-wash);
+  color: var(--on-focus);
+  background: var(--callout);
 }
 
 .mode[aria-checked="true"] {
-  /* The one hardcoded duplicate of --on-focus this file used to carry. On a dark
-     stock --ink is a light blue, so a literal #f7fbff here put light text on a
-     light ground and the selected tab vanished. */
   color: var(--on-focus);
-  background: var(--ink);
+  background: var(--callout);
 }
 
 .presets {
@@ -1059,9 +1037,9 @@ kbd::after {
 }
 
 .chip:hover {
-  color: var(--callout);
+  color: var(--on-focus);
+  background: var(--callout);
   border-color: var(--callout);
-  background: var(--stock-lift);
 }
 
 .mode-panel {
@@ -1070,21 +1048,19 @@ kbd::after {
 
 /*
  * The one control that is always on screen, between the strength readout and the
- * disclosure. A heavy rule above it, because a drawing separates zones with a
- * centre line and this is the one place the page needs one.
+ * disclosure. A rule above it, because a terminal separates zones with a rule.
  */
 .always-on {
   margin-top: 20px;
   padding-top: 17px;
-  border-top: 2px solid var(--ink);
+  border-top: 1px solid var(--rule-strong);
 }
 
 .field {
   gap: 7px;
 }
 
-/* Field labels are annotations, so they are uppercased and set off the grid in a
-   lighter ink -- the way a drawing dims an annotation against its object. */
+/* Field labels are command flags, so they are uppercased and dimmed. */
 .field > label,
 .toggles legend {
   font-family: var(--ui);
@@ -1109,7 +1085,7 @@ kbd::after {
   color: var(--ink-mute);
 }
 
-/* range -- a dimension line you drag, with witness ticks under it */
+/* range -- a bar you drag, with the scale under it */
 
 input[type="range"] {
   height: 24px;
@@ -1128,7 +1104,7 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: -9px;
   border: 1px solid var(--ink);
   background: var(--ink);
-  /* The paper gap either side keeps the nib legible where it crosses the track. */
+  /* The gap either side keeps the nib legible where it crosses the track. */
   box-shadow: 0 0 0 3px var(--stock);
 }
 
@@ -1231,8 +1207,7 @@ select.text-input {
   border-color: var(--rule);
 }
 
-/* The checkbox is an empty cell that gets a tick when it is filled in. Ticks, not
-   fills: a drawing marks a value, it does not flood it. */
+/* The checkbox is an empty cell that gets a tick when it is filled in. */
 .toggle input {
   width: 16px;
   height: 16px;
@@ -1304,14 +1279,20 @@ select.text-input {
   background: var(--stock-lift);
 }
 
-/* The marker is a section letter, the way a drawing's notes are keyed A, B, C. */
+/* The marker is a prompt glyph, and it turns to point down when the panel opens. */
 .disclosure > summary::before,
 .advanced > summary::before,
 .adjust > summary::before {
-  content: "\00A7";
+  content: "\25B8";
   width: 1.5em;
   font-weight: 700;
   color: var(--callout);
+}
+
+.disclosure[open] > summary::before,
+.advanced[open] > summary::before,
+.adjust[open] > summary::before {
+  content: "\25BE";
 }
 
 .disclosure[open],
@@ -1366,8 +1347,7 @@ select.text-input {
  * THE ZEROS ARE THE PRODUCT. Each figure gets a cell and the number is the largest
  * thing in this section, because "0 network calls" is the claim the whole page
  * exists to support. The cells share hairlines so the block reads as one ruled
- * schedule rather than six separate boxes, which is how a drawing tables its
- * data.
+ * schedule rather than six separate boxes.
  */
 .counters {
   gap: 0;
@@ -1429,10 +1409,10 @@ select.text-input {
 
 /*
  * The crack table is the other ruled schedule in this section, so it is drawn the
- * same way as .counters: hairlines between rows, a double-weight rule under the
- * header, and no box. Two columns, not three -- the detail is the definition of
- * each attack model, so folding it under the label keeps it readable at 390px
- * instead of dropping the sentence that explains the whole table.
+ * same way as .counters: hairlines between rows, a heavier rule under the header,
+ * and no box. Two columns, not three -- the detail is the definition of each
+ * attack model, so folding it under the label keeps it readable at 390px instead
+ * of dropping the sentence that explains the whole table.
  */
 .crack caption {
   caption-side: top;
@@ -1451,7 +1431,7 @@ select.text-input {
   text-transform: uppercase;
   text-align: left;
   color: var(--ink-mute);
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .crack tbody td {
@@ -1522,7 +1502,7 @@ select.text-input {
 }
 
 /* The policy is quoted verbatim from the document head, so it is set as a block
-   quote with the callout bar in the margin -- a quoted note, not a code listing. */
+   with the phosphor bar in the margin -- a quoted note, not a code listing. */
 .policy {
   margin: 0;
   padding: 12px;
@@ -1540,7 +1520,7 @@ select.text-input {
 .selftest {
   margin-top: 19px;
   padding-top: 17px;
-  border-top: 2px solid var(--ink);
+  border-top: 1px solid var(--rule-strong);
 }
 
 .selftest .hint {
@@ -1606,7 +1586,7 @@ select.text-input {
   overflow-wrap: anywhere;
 }
 
-/* The observed value is a reading off an instrument, so it is quoted at a smaller
+/* The observed value is a reading off the screen, so it is quoted at a smaller
    size in the softer ink. */
 .test-observed {
   font-family: var(--ui);
@@ -1633,6 +1613,7 @@ select.text-input {
 .footer {
   max-width: var(--page);
   margin: 26px auto 0;
+  padding: 0 24px 26px;
 }
 
 .strip {
@@ -1641,7 +1622,7 @@ select.text-input {
   gap: 5px 20px;
   margin: 0;
   padding-top: 13px;
-  border-top: 2px solid var(--ink);
+  border-top: 1px solid var(--rule-strong);
   font-family: var(--ui);
   font-size: 10px;
   font-weight: 700;
@@ -1691,30 +1672,16 @@ select.text-input {
     padding: 18px 13px 52px;
   }
 
-  /*
-   * The grid goes with the page. On a 390px screen a 24px square is a large
-   * fraction of the width and four small squares across would be the loudest
-   * thing on it, so it halves rather than scaling.
-   */
-  body {
-    background-image:
-      linear-gradient(var(--grid-fine-narrow) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-fine-narrow) 1px, transparent 1px),
-      linear-gradient(var(--grid-bold-narrow) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-bold-narrow) 1px, transparent 1px);
-    background-size: 12px 12px, 12px 12px, 48px 48px, 48px 48px;
-  }
-
   .deck {
     padding: 15px 13px 17px;
   }
 
-  .deck::before {
-    left: 12px;
+  .masthead {
+    padding: 16px 13px 12px;
   }
 
-  .deck::after {
-    inset: 4px;
+  .footer {
+    padding: 0 13px 17px;
   }
 
   .modes {
@@ -1742,23 +1709,22 @@ select.text-input {
   /*
    * The figures are not one width. A strong password reads "10^30 years" and a
    * weak one reads "207,057x the age of the universe" -- 11 characters against
-   * 32, which is 98px against 262px at this type size. A shrink-wrapped column
-   * therefore has to be as wide as the worst figure, and below about 500px that
-   * leaves the label column too narrow to hold even "Online, rate-limited": at a
-   * 380px screen it gets 65px and breaks one word per line.
-   *
-   * So the column stops shrink-wrapping and takes a fixed share instead, and the
-   * figure is allowed to wrap inside it. The label keeps the majority, which is
-   * the right way round: it is the row's key, and its detail sentence is prose
-   * that has somewhere natural to break. Above the breakpoint the figures stay
-   * on one line each, because there is room for them there.
-   *
-   * 42% rather than half, because at 320px the difference is the difference
-   * between the label fitting on one line and not.
+   * 32. A shrink-wrapped column therefore has to be as wide as the worst figure,
+   * and below about 500px that leaves the label column too narrow to hold even
+   * "Online, rate-limited". So the column stops shrink-wrapping and takes a
+   * fixed share instead, and the figure is allowed to wrap inside it.
    */
   .crack .c-time {
     width: 42%;
     white-space: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  /* The hint cannot hold its own line in the title bar at this width; the
+     title alone still identifies the window. */
+  .term-hint {
+    display: none;
   }
 }
 

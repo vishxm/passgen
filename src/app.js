@@ -232,8 +232,8 @@
   }
 
   /*
-   * Six buckets, stepped for the single-column card. The plate grew a step when
-   * the two panels became one, and with it the type: at 720px wide the longest
+   * Six buckets, stepped for the single-column window. The plate grew a step when
+   * the two panels became one, and with it the type: at 780px wide the longest
    * bucket still leaves a line to spare at two rows for a 128-character secret.
    */
   function secretSize(length) {
@@ -918,6 +918,9 @@
       if (event.key === 'g' || event.key === 'G') {
         event.preventDefault();
         generate();
+      } else if (event.key === 'c' || event.key === 'C') {
+        event.preventDefault();
+        copySecret();
       }
     });
 

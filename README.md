@@ -35,11 +35,12 @@ npm run check          # build + test + verify
 
 There is one design, and one stylesheet: `src/styles.css`. It opens in two halves
 &mdash; a structural layer that keeps the page working whatever it looks like, and
-the drawing itself &mdash; and the order of the two is load-bearing. The page draws
-a password the way a working drawing would: mono throughout, cyan-blue ink on
-paper-white stock, a 24px graph-paper grid, corner ticks at the drawing's extent,
-and the strength gauge as a dimension line with witness ticks and a break at the
-60-bit mark rather than a bar that fills up.
+the drawing itself &mdash; and the order of the two is load-bearing. The page is a
+terminal: a window with a title bar of three dots, a prompt line reading
+`you@machine$ passgen`, the secret as the command's output block, and a receipt
+strip that reports `0 network calls` as the last line of output. Mono throughout,
+because a terminal has one face; one phosphor-green accent, because a terminal
+has one colour; a 3px scanline across the field rather than a ruled grid.
 
 Requires **Node 22+** for the tooling. The page itself needs nothing but a
 browser.
@@ -123,10 +124,10 @@ another tick in that table.
 
 ---
 
-## One card, in causal order
+## One window, in causal order
 
-The whole interface is one card, 720px wide, and it reads in the order you
-actually use it:
+The whole interface is one terminal window, 780px wide, and it reads in the
+order you actually use it:
 
 1. **What kind of thing** &mdash; four modes, then three presets.
 2. **The thing** &mdash; the plate.
@@ -170,8 +171,9 @@ overwrite the spec line, which then did not come back until you regenerated.
 | **PIN** | digits only | 4&ndash;12 digits, optional no repeats |
 | **Custom set** | your own alphabet | any characters you paste, including emoji and accents; length; no repeats |
 
-Press <kbd>G</kbd> anywhere to regenerate. Copy puts it on your clipboard, which
-is the only write this page ever performs.
+Press <kbd>G</kbd> anywhere to regenerate, or <kbd>C</kbd> to copy; both are
+ignored while you are typing in a field. Copy puts the secret on your clipboard,
+which is the only write this page ever performs.
 
 ---
 
@@ -331,11 +333,11 @@ LICENSE               MIT, for this project's own code
 
 ### The night stock, and why there is no toggle for it
 
-The page is cyan-blue ink on paper-white stock, and it is also a blueprint when
-your OS asks for one. A `@media (prefers-color-scheme: dark)` block in
-`src/styles.css` redeclares the `:root` tokens on a deep blue-black stock and
-lightens the ink to meet it. There is no other moving part: no JavaScript, no
-button, no new markup.
+The page is a phosphor field with a green trace, and it is the same screen with
+the backlight up when your OS asks for a light one. A
+`@media (prefers-color-scheme: dark)` block in `src/styles.css` redeclares the
+`:root` tokens on a near-black green stock and lightens the ink to meet it. There
+is no other moving part: no JavaScript, no button, no new markup.
 
 **There is deliberately no toggle.** The obvious build — a switch that remembers
 itself — writes the theme to `localStorage`, and this page asserts in its own
@@ -348,9 +350,13 @@ toggle is ever wanted, the version that keeps the receipts honest is
 
 The dark palette was searched rather than eyeballed. The same contrast bars the
 light stock is held to — `--ink-mute` 4.5:1, `--rule-strong` 3:1 — are used as a
-filter, and every dark value clears its light counterpart: `--ink` 15.03 (light
-12.87), `--ink-mute` 6.92 (6.46), `--callout` 7.33 (5.47), `--verified` 7.83
-(5.96), `--rule-strong` 3.32 against the 3:1 non-text requirement.
+filter, and every dark value clears its light counterpart: `--ink` 17.34 (light
+14.58), `--ink-mute` 8.56 (4.63), `--callout` and `--verified` 11.72 (6.31), and
+`--rule-strong` 3.71 (3.09) against the 3:1 non-text requirement.
+
+The title bar sits on `--stock-deep` rather than `--stock`, where `--ink-soft`
+measures 12.95:1 at night and 8.48:1 by day. The chrome is held to the same
+4.5:1 bar as body text.
 
 Two tests hold this up, in the section of `test/build.test.mjs` that exists to
 catch a stylesheet which still parses and has quietly stopped responding:
@@ -359,7 +365,7 @@ catch a stylesheet which still parses and has quietly stopped responding:
   added to one and forgotten in the other cannot ship
 - no hex and no `rgba()` survives outside the two palette blocks, because a
   `@media` block cannot reach a literal — that is the precondition for the whole
-  approach, and it is why the washes and the grid are tokens too
+  approach, and it is why the washes and the scanlines are tokens too
 
 `src/lib/controls.js` is the reason the control logic is tested at all.
 `src/app.js` is wiring &mdash; it reads elements, calls the generators, writes
@@ -421,23 +427,18 @@ script. `node --test` loads them by lending them a `window`.
   install would read zero forever, so a zero is only worth what the positive
   control below says it is worth.
 - There is no print stylesheet. Printing is left entirely to the browser, so
-  `Cmd+P` prints the page as it appears on screen: the palette, the grid, the
-  card, and the colour coding on the characters.
+  `Cmd+P` prints the page as it appears on screen: the palette, the scanlines, the
+  window, and the colour coding on the characters.
 
 ### Which browsers this has actually been run in
 
-Checked on 9 October 2026 against `dist/index.html` with SHA-256
-`960dca4d80eaa0a2f8c40d8cf6b6342850f18de4625fdb3ce0d5843c58c60baa`, from **both**
+Checked on 21 October 2026 against `dist/index.html` with SHA-256
+`40972a00963e977b5a4ae00f496bbc8affaf1b6438011763c92425fcbdd4f282`, from **both**
 `file://` and `http://localhost:8080`. Every cell below was measured in all six
-engine-and-origin combinations and the two origins never disagreed:
+engine-and-origin combinations and the two origins never disagreed on a cell in
+the table:
 
-> **This table describes the build before dark mode was added**, whose SHA-256 is
-> the one above. The current `dist/index.html` is `3b6c84c577ed435fc32f1b4769c16c9eb70f17c8f48617a7ce2ce1fc769e7971`,
-> and it has been re-measured only in Chromium. Nothing here has been re-run in
-> Firefox or WebKit since the stylesheet changed, so treat those two columns as
-> describing the previous build rather than this one. Re-run before citing them.
-
-| | Chromium 155.0.8059.12 | Firefox 156.0 | WebKit 26.6 |
+| | Chromium 156.0.8078.4 | Firefox 157.0 | WebKit 27.2 |
 | --- | --- | --- | --- |
 | Loads, generates | yes | yes | yes |
 | Console errors of its own | none | none | one, and see below |
@@ -447,6 +448,13 @@ engine-and-origin combinations and the two origins never disagreed:
 | *Blocked by policy* | 5 of 6 attempts | 5 of 6 | 6 of 6 |
 | Hash lock holds against a one-byte edit | yes | yes | yes |
 | 390 px wide, no horizontal overflow | yes | yes | yes |
+| 320 px wide, no horizontal overflow | yes | yes | yes |
+| Title bar text at least 4.5:1 in both schemes | yes | yes | yes |
+
+`tools/browser-matrix.sh` reproduces this table. It installs Playwright into a
+temporary directory and removes it on exit, so the repository keeps its empty
+`dependencies` block and `npm run check` still needs nothing but Node. The title
+bar measured 8.48:1 in the day palette and 12.95:1 at night in every engine.
 
 The build of WebKit above is the one Playwright ships, which is not the same
 binary as Safari.app. Safari itself is untested here: it gates the clipboard on a
@@ -455,14 +463,15 @@ headlessly. Assume nothing about Safari that is not in the table.
 
 **WebKit logs one console message, and does not act on it.** The message is
 `Refused to apply a stylesheet because its hash ... does not appear in the
-style-src directive`. The sheet is applied anyway: the card measures 720 px, the
+style-src directive`. The sheet is applied anyway: the window measures 780 px, the
 body keeps its monospace stack, and the generator runs. The hash is not wrong
 &mdash; `sha256` of the inline `<style>` text is byte-for-byte the value in the
-policy, checked by hand. Two candidate causes were ruled out by rebuilding the
-page with a recomputed hash each time: the one non-ASCII character in the sheet
-(`U+00B7`) is not it, and neither is the trailing newline. What does reproduce
-the refusal is genuinely altering the bytes &mdash; converting the sheet to CRLF
-leaves WebKit with **no** stylesheet, a full-width card and the default font.
+policy, and `npm run verify` re-checks it. Two candidate causes were ruled out by
+rebuilding the page with a recomputed hash each time: the one non-ASCII character
+in the sheet (`U+00B7`) is not it, and neither is the trailing newline. An earlier
+run found that what does reproduce the refusal is genuinely altering the bytes
+&mdash; converting the sheet to CRLF leaves WebKit with **no** stylesheet, a
+full-width window and the default font.
 
 That contrast is the point: the enforcement is real, so the message in the
 normal case is WebKit declining to enforce rather than a policy quietly skipped.
@@ -482,8 +491,9 @@ counter reads. So from inside each page, deliberately writing to `localStorage`,
 to 6, split correctly across the three channels that actually see a call
 (`storage.setItem` 2, `storage.removeItem` 2, `document.cookie` 2 &mdash; both
 stores share one `Storage.prototype` patch, so they are counted as one channel
-each, not two), in all three engines. A refused `fetch` outside the self-test
-moves *network calls* from 0 to 1, in all three. The particular worry in
+each, not two), in all six engine-and-origin combinations. A refused `fetch`
+outside the self-test moves *network calls* from 0 to 1, in all six. The
+particular worry in
 `src/lib/integrity.js` &mdash; that Firefox hands back a fresh
 `window.localStorage` wrapper and silently discards a patch on the instance
 &mdash; does not apply: the patch is on `Storage.prototype`, and re-reading
@@ -494,15 +504,15 @@ a 1 Hz `setInterval` in `src/app.js`, so a probe followed by an immediate read
 sees the previous tick and looks like a dead counter. Reading too early made a
 working counter read 0 in two of three engines before this was pinned down.
 
-**One number not reproduced this round.** An earlier version of this table noted
-that on Chromium over `file://`, `navigator.clipboard.writeText` is refused
+**The `file://` clipboard fallback, confirmed.** On Chromium over `file://`, with
+no clipboard permission granted, `navigator.clipboard.writeText` is refused
 (`NotAllowedError`), so **Copy** falls back to `document.execCommand`, both are
-counted, and four presses read **8** instead of 4. This run recorded **4** on
-every engine and origin, because the harness granted `clipboard-read` and
-`clipboard-write` to the browser context, which a user double-clicking the file
-does not get. So that behaviour is **untested here, not refuted**: the fallback
-is still in `src/app.js`, and reproducing it needs a run without the permission
-grant.
+counted, and four presses read **8** instead of 4. That is the number measured
+this round. Over `http://localhost:8080` in Chromium, with `clipboard-read` and
+`clipboard-write` granted to the context, the same four presses read **4**.
+Firefox and WebKit do not implement those permission names in Playwright, so they
+ran without a grant and still read **4** on the click gesture. A Chromium user
+double-clicking the file gets the 8 count; a visitor on the served page gets 4.
 
 ---
 
@@ -515,9 +525,12 @@ kept at `src/data/eff_large_wordlist.txt`; `npm run wordlist` regenerates the
 embedded copy and fails loudly if the word count is not exactly 7776, because
 Diceware indices depend on it.
 
-This project's own code is MIT licensed; see `LICENSE`, which also states
-plainly that the MIT terms do not extend to the word list. That attribution is
-repeated in the page's own colophon and must stay with any redistribution of the
-list, whichever licence covers the code around it.
+This project's own code is MIT licensed; see `LICENSE` for the canonical MIT
+text. The MIT terms do not extend to the embedded word list in
+`src/lib/wordlist.js` or the raw list in `src/data/eff_large_wordlist.txt`:
+that list is Joseph Bonneau's EFF Long Wordlist under CC BY 3.0, attributed
+above. That attribution is repeated in the page's own colophon and must stay
+with any redistribution of the list, whichever licence covers the code around
+it.
 
 Everything else is in this repository, and there are no dependencies to audit.

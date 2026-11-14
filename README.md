@@ -99,9 +99,18 @@ Two things are worth knowing about what lands in public:
 To confirm a deployment is the build you meant:
 
 ```sh
-curl -sI https://<your-domain>/                    # the headers below
-curl -s https://<your-domain>/index.html.sha256    # must match your local file
+curl -sI https://passgen-ecru.vercel.app/                    # the headers below
+curl -s https://passgen-ecru.vercel.app/index.html.sha256    # must match your local file
 ```
+
+`https://passgen-ecru.vercel.app` is the project's public production alias. The
+per-deployment URLs Vercel prints (`passgen-<hash>-…vercel.app`) and
+`passgen-git-main-…vercel.app` sit behind Vercel Authentication and answer a
+`curl` with an HTML auth wall rather than the file, so a check run against one of
+those looks like a broken deployment when it is only a protected one. `vercel
+inspect <url> --logs` still works on them, and its build output prints the
+`file sha256` `tools/build.mjs` produced &mdash; which is the figure to compare
+against `dist/index.html.sha256`.
 
 ### What the host sends, and why it is not more
 

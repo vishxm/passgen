@@ -17,7 +17,7 @@
 <!-- An empty data: icon, so the browser never asks anyone for a favicon. The
      policy allows data: for images, and nothing else, purely so this works. -->
 <link rel="icon" href="data:,">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <meta name="description" content="A password generator that runs entirely in your browser. Nothing is stored, nothing is sent, and the browser itself blocks all network access.">
 <meta name="robots" content="noindex">
 <title>passgen &middot; a password generator that stays on your machine</title>
@@ -31,12 +31,19 @@
     <span class="tl-dot" aria-hidden="true"></span>
     <span class="tl-dot tl-y" aria-hidden="true"></span>
     <span class="tl-dot tl-g" aria-hidden="true"></span>
-    <span class="term-title">passgen &middot; zsh</span>
+    <span class="term-title">passgen</span>
     <span class="term-hint">G regenerate &middot; C copy</span>
   </div>
 
   <div class="term-body">
 <header class="masthead">
+  <!-- Three primitives, decorative, hidden from assistive tech: the one place
+       this design puts shapes that are not carrying information. -->
+  <div class="deco" aria-hidden="true">
+    <span class="deco-sq"></span>
+    <span class="deco-tri"></span>
+    <span class="deco-ring"></span>
+  </div>
   <div class="brand">
     <span class="brand-mark" aria-hidden="true">#</span>
     <h1>passgen</h1>
@@ -365,6 +372,8 @@
   </details>
 </footer>
   </div>
+
+  <div class="stripe-bar" aria-hidden="true"></div>
 </div>
 
 <noscript>

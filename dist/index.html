@@ -11,13 +11,13 @@
   re-checks them. If you edit app.js by hand, the page will refuse to run --
   that is the intended behaviour.
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pre8+Klzj6Q/k6mfPRy3r720GfTg4r6SfI/uCG1tnGQ='; style-src 'sha256-n4TfXhUIAKl2N85foNWrss4jG8qooxQCxHRwAMywB3o='; connect-src 'none'; img-src data:; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
-<meta name="generator" content="passgen 1.0.0 · source 5a7b396df5b5f33cb788a11e5a1fe210c098580864254faf8d76370de8c070ed">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Y8GibuHihulYUfHoLpc0qFi/j1DyOa28JOPfdJmlALY='; style-src 'sha256-pG7926mkF1kKINnTKOlqQOKxTyU6keobM9AHoSPBPMc='; connect-src 'none'; img-src data:; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="generator" content="passgen 1.0.0 · source a478dbc5398b388b7f2ad1b6b1972ca8441e4c0f95acd57fdb2298fe4ea08b1b">
 <meta name="referrer" content="no-referrer">
 <!-- An empty data: icon, so the browser never asks anyone for a favicon. The
      policy allows data: for images, and nothing else, purely so this works. -->
 <link rel="icon" href="data:,">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <meta name="description" content="A password generator that runs entirely in your browser. Nothing is stored, nothing is sent, and the browser itself blocks all network access.">
 <meta name="robots" content="noindex">
 <title>passgen &middot; a password generator that stays on your machine</title>
@@ -283,11 +283,11 @@ main {
  * figure running past the right edge of the last one was simply cut off.
  *
  * The width is auto, not 100%, and that is load-bearing. The disclosure gives
- * every child a 12px gutter, and a percentage width resolves against the
- * content box, which does not know about the margins -- so width: 100% plus the
- * gutter overhangs the block by 12px on the right and the right-aligned figures
- * are what you see poking out of it. auto lets the table take the space the
- * margins leave it, which is the same width the sibling blocks get.
+ * every child a 14px gutter, and a percentage width resolves against the content
+ * box, which does not know about the margins -- so width: 100% plus the gutter
+ * overhangs the block by 14px on the right and the right-aligned figures are what
+ * you see poking out of it. auto lets the table take the space the margins leave
+ * it, which is the same width the sibling blocks get.
  */
 .crack {
   width: auto;
@@ -372,147 +372,125 @@ select.text-input {
 
 /* ================================================================== the design
  *
- * THE IDEA. This program talks to nothing, so the page is the one place it *does*
- * talk: a terminal. One window, one prompt, one output block, and a receipt strip
- * that reads like the last line of output. The stock is a phosphor field --
- * near-black with a green trace -- and the day stock is the same screen with the
- * backlight up. Everything is mono, because a terminal has one face; the one
- * accent is the phosphor green, because a terminal has one colour.
+ * THE IDEA. Memphis, softened. The 1980s Memphis Group in one sentence: heavy
+ * keylines, blocks of clashing colour, shapes that were never meant to sit still,
+ * and a hard offset shadow instead of a soft one. All of that is here, at roughly
+ * two-thirds the volume, because what is being drawn is a keypad rather than a
+ * record sleeve.
  *
- * THE CHROME IS THE METAPHOR. A title bar with three dots, a prompt line that
- * reads `you@machine$ passgen`, and a footer that reports `0 network calls`. The
- * page stops explaining that it makes no network calls and starts showing it as
- * output, which is where a claim like that belongs.
+ * WHY MEMPHIS AND NOT SOMETHING QUIETER. The previous design was a terminal: one
+ * face, one colour, hairlines, and a scanline field behind 13px monospace. It was
+ * honest, and it was tiring -- small mono on a 1px-every-3px texture is a great
+ * deal of high-frequency noise under every word on the page, and it read as plain
+ * because nothing in it was allowed to be loud. Memphis gives the page something
+ * to look at and gives every element a shape, without touching a single label.
  *
- * WHY SCANLINES AND NOT A GRID. The blueprint design was ruled graph paper,
- * because a drawing is measured. A terminal is not measured, it is traced: a
- * 3px scanline across the field, drawn with one gradient, is the one ornament
- * here and it is the whole metaphor made visible.
+ * WHAT IS NOT MEMPHIS. The plate. Memphis tilts things; a twenty-character secret
+ * that a human has to read and copy does not tilt. It is the one element at zero
+ * degrees, and the type in it stays monospace, because character alignment is how
+ * you check a password rather than read it. Everything else may lean.
  *
- * NO ROUNDING, NO SHADOWS, NO SECOND FACE. The window is a rectangle with a 1px
- * rule, the buttons are rectangles that invert, the gauge is a bar. A terminal is
- * flat by construction, and a shadow on a terminal window would be the one
- * lighting cue this design does not have.
+ * THE EYE-STRAIN RULE, WHICH IS WHY THE REST IS THE WAY IT IS. Two things made the
+ * old page tiring, and both are gone. The scanline field belongs to the page
+ * margin now -- the window is opaque paper, so no texture sits under any text.
+ * And the ink is warm brown-black on warm paper rather than near-black on
+ * near-white: body text falls from 14.58:1 to 11.46:1, and the plate from about
+ * 14:1 to 9.53:1. Lower than that starts failing AA on body copy, so this is as
+ * soft as the page can go without breaking its own contrast rule.
+ *
+ * ONE PALETTE, ONE SCHEME. There is no night stock any more. The page is light
+ * only, and <meta name="color-scheme" content="light"> says so, so the browser's
+ * own scrollbars and form controls do not invert underneath it. That is a
+ * decision with a cost -- someone reading at midnight gets a bright page -- and
+ * the cost is written down in the README rather than hidden behind a toggle that
+ * would have to remember itself, which is a storage write this page does not make.
+ *
+ * THE PALETTE IS DESATURATED ABOUT A FIFTH from the reference Memphis set. The
+ * originals (#FF71CE, #FFCE5C, #86CCCA) are almost all too light to carry text at
+ * 4.5:1 on paper, and their full chroma vibrates at the edges when they sit in
+ * blocks this size. Five of the six carry --ink at 5.00:1 or better, so they are
+ * blocks with type on them rather than decoration type has to fight. The sixth,
+ * --peri, measures 3.93 under --ink and is therefore a border and a ring colour
+ * only -- it never sits under text, and the render audit in the README says so.
+ *
+ * EVERY COLOUR IS A TOKEN, AND ONLY HERE. The palette is one block now, but a hex
+ * typed into a rule below is still a value nobody can find later.
  */
 
 :root {
-  /* Stock: a phosphor field. Day is the same screen with the backlight up. */
-  --stock: #f4f2ea;
-  --stock-deep: #e9e6db; /* recessed: the output block, the gauge track */
-  --stock-lift: #fcfbf6; /* raised: inputs, chips, buttons */
+  /* Paper. Warm, never white: white is the thing that glares. */
+  --paper: #fbf1df;
+  --paper-2: #f4e5c9; /* recessed: the gauge track, an open bar */
+  --paper-3: #eedcbc; /* the plate, one step further in */
+  --lift: #fffbf0; /* raised: inputs, buttons, disclosure bars */
 
-  /* Ink: near-black green, at three densities rather than three hues. */
-  --ink: #14231a;
-  --ink-soft: #2b4436;
-  --ink-mute: #5c7264;
+  /* Ink: a warm brown-black, at three densities rather than three hues. */
+  --ink: #3a302a;
+  --ink-soft: #5b4e42;
+  --ink-mute: #7a6a57;
 
-  /* Rules. */
-  --rule: #cdc9b8;
-  --rule-strong: #8e8a78;
+  /* The keyline, which is also the shadow. */
+  --rule: #40363a;
+  --focus: #a63b24;
+  --on-focus: #fffbf0;
 
-  /* The phosphor: one accent, used for the trace, the marks and the figures. */
-  --callout: #14662f;
-  --verified: #14662f;
+  /* The Memphis set, one fifth quieter than the reference. */
+  --pink: #f58cc8;
+  --yellow: #f7d06b;
+  --teal: #9ec9c5;
+  --peri: #7e8cc4;
+  --coral: #f0836f;
+  --aqua: #74c7bc;
+
+  /* The paper's grain, and the selection wash. The only two alpha values. */
+  --dot: rgba(126, 140, 196, 0.16);
+  --selection: rgba(158, 201, 197, 0.55);
 
   --page: 780px;
 
-  --focus: var(--callout);
-  --on-focus: #fcfbf6;
-
-  /* One face. ui-monospace resolves to SF Mono on Apple, Cascadia Mono on
-     Windows, DejaVu Sans Mono on Linux; all three are drawn at these sizes. */
-  --ui: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono",
+  /*
+   * TWO FACES, AND ONLY TWO. Futura is the Memphis face and ships on Apple
+   * systems; the stack behind it degrades to the nearest geometric sans
+   * everywhere else. No file is fetched -- font-src is 'none' in the policy -- so
+   * this is a preference expressed to the machine, exactly as the old mono stack
+   * was.
+   *
+   * --ui is also what the structural half uses for the skip link, which is why it
+   * is the sans and not the monospace. --mono is not a preference: the plate and
+   * every figure on the page are monospace because they are compared character by
+   * character and column by column, which a proportional face cannot do.
+   */
+  --ui: "Futura", "Avenir Next", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono",
     "Liberation Mono", monospace;
   --display: var(--ui);
 
-  /*
-   * WASHES. Everything above is opaque; these are the values that are alpha over
-   * --stock, and they exist as tokens for one reason only: a @media
-   * (prefers-color-scheme: dark) block cannot reach a literal. A hex typed
-   * straight into a rule is frozen at the value the day stock needs, and the
-   * night block below would pass right over it without complaint.
-   *
-   * They stay translucent, and they stay *lighter* than the stock in both
-   * palettes. The window itself is opaque, so these washes sit on the terminal
-   * screen rather than on the body's scanline field: the deck is a lighter patch
-   * of the screen, not a card laid over it. An opaque panel here would split the
-   * screen into card and page, which is a different design and a worse one.
-   */
-  --sheet-wash: rgba(252, 251, 246, 0.7); /* the deck */
-  --sheet-bar: rgba(252, 251, 246, 0.75);
-  --sheet-open: rgba(252, 251, 246, 0.95); /* a bar standing open */
-  --callout-wash: rgba(20, 102, 47, 0.15); /* the focus ring, and the space mark */
-  --callout-edge: rgba(20, 102, 47, 0.45); /* the underline under a space */
-  --selection: rgba(20, 102, 47, 0.2);
-
-  /* The scanline field, as ink at two densities. */
-  --scan: rgba(20, 35, 26, 0.045);
-}
-
-/* ------------------------------------------------------------------- night
- *
- * THE SAME SCREEN, PHOSPHOR UP. Not an inverted palette: the stock goes to a
- * near-black green and the ink lightens to meet it, because a terminal is
- * green-on-dark and that is what this page has always been drawing.
- *
- * PLACED HERE, AND NOT ELSEWHERE. It follows the :root block so that every token
- * it overrides is already defined, and it wins on cascade order alone -- equal
- * specificity, later rule. No attribute selector and no :where() trick, so there
- * is nothing here that can drift out of step with the block above it. It is also
- * the whole of the night mode: there is no toggle, because a toggle that
- * remembered itself would write to localStorage, and this page's own self-test
- * asserts that nothing is stored (integrity.js, "Nothing is stored for this
- * page"). Following the OS cannot falsify a receipt.
- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --stock: #050806;
-    --stock-deep: #080d09;
-    --stock-lift: #0e1410;
-
-    --ink: #d9f5e1;
-    --ink-soft: #a5dfbc;
-    --ink-mute: #76b78e;
-
-    --rule: #1b2b20;
-    --rule-strong: #4a7355;
-
-    --callout: #46e07f;
-    --verified: #46e07f;
-
-    /* The ink is light now, so the text that sits *on* it has to be dark. */
-    --on-focus: #050806;
-
-    --sheet-wash: rgba(217, 245, 225, 0.05);
-    --sheet-bar: rgba(217, 245, 225, 0.06);
-    --sheet-open: rgba(217, 245, 225, 0.09);
-    --callout-wash: rgba(70, 224, 127, 0.16);
-    --callout-edge: rgba(70, 224, 127, 0.5);
-    --selection: rgba(70, 224, 127, 0.25);
-
-    --scan: rgba(217, 245, 225, 0.035);
-  }
+  /* One elevation, two sizes: the thing you read, and the thing you press. */
+  --shadow: 6px 6px 0 var(--rule);
+  --shadow-sm: 4px 4px 0 var(--rule);
 }
 
 /* ------------------------------------------------------------------- stock */
 
 body {
-  --page: 780px;
-  padding: 28px 22px 64px;
+  padding: 34px 22px 70px;
   max-width: calc(var(--page) + 44px);
   margin-inline: auto;
   font-family: var(--ui);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.7;
   color: var(--ink);
-  background-color: var(--stock);
+  background-color: var(--paper);
   /*
-   * The scanline field: one 1px trace every 3px, drawn with a single gradient
-   * rather than an image because img-src allows only inline bytes and a
-   * repeating tile would be neither.
+   * The confetti field, in the margin only. It is one radial-gradient rather than
+   * an image because img-src allows inline bytes and nothing else. The window is
+   * opaque --paper and covers it, so the texture never sits behind text, which is
+   * the whole point: a dot every 30px under 12px type is the same mistake the
+   * scanline field made.
    */
-  background-image: linear-gradient(var(--scan) 1px, transparent 1px);
-  background-size: 100% 3px;
+  background-image: radial-gradient(var(--dot) 1.4px, transparent 1.4px);
+  background-size: 30px 30px;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
@@ -524,73 +502,86 @@ h2,
 h3 {
   font-family: var(--display);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  line-height: 1.1;
 }
 
 a {
-  color: var(--callout);
+  color: var(--focus);
 }
 
 code {
-  font-family: var(--ui);
-  font-size: 0.92em;
+  font-family: var(--mono);
+  font-size: 0.9em;
   padding: 0.05em 0.3em;
   color: var(--ink);
-  background: var(--stock-deep);
+  background: var(--paper-2);
   border: 1px solid var(--rule);
 }
 
 /* ------------------------------------------------------------- the window */
 
 /*
- * THE WINDOW. A rectangle with a 1px rule and a title bar. No rounding and no
- * shadow: a terminal window is a flat surface, and the only depth cue here is
- * the recessed title bar.
+ * THE WINDOW. A rectangle with a 2px keyline and one hard shadow. Memphis has no
+ * soft elevation, so the shadow is a second rule offset by six pixels rather
+ * than a blur.
  */
 .term {
-  border: 1px solid var(--rule-strong);
-  background: var(--stock);
+  border: 2px solid var(--rule);
+  background: var(--paper);
+  box-shadow: var(--shadow);
 }
 
 .term-bar {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 13px;
-  border-bottom: 1px solid var(--rule-strong);
-  background: var(--stock-deep);
+  gap: 9px;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--rule);
+  background: var(--paper-2);
 }
 
-/* The three dots are one accent at three densities, because a terminal has one
-   colour and the chrome should not invent a second. */
+/*
+ * The three dots, re-read as primitives: circle, diamond, triangle. Same three
+ * spans, same order, no extra markup -- a window's traffic lights are the one
+ * piece of chrome a user already reads as decoration, so it is the cheapest place
+ * on the page to say 1985.
+ */
 .tl-dot {
-  width: 11px;
-  height: 11px;
+  width: 13px;
+  height: 13px;
   flex: none;
   border-radius: 50%;
-  background: var(--callout);
+  background: var(--pink);
+  border: 2px solid var(--rule);
 }
 
 .tl-y {
-  opacity: 0.45;
+  border-radius: 0;
+  background: var(--yellow);
+  transform: rotate(45deg) scale(0.86);
 }
 
 .tl-g {
-  opacity: 0.7;
+  width: 15px;
+  height: 14px;
+  border: 0;
+  background: var(--teal);
+  clip-path: polygon(50% 0%, 100% 100%, 0 100%);
 }
 
 .term-title {
-  margin-left: 8px;
+  margin-left: 6px;
   font-family: var(--ui);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--ink-soft);
 }
 
 .term-hint {
   margin-left: auto;
-  font-family: var(--ui);
+  font-family: var(--mono);
   font-size: 10px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -598,52 +589,126 @@ code {
   display: block;
 }
 
+/* The window closes on a stripe bar: no text, no meaning, one loud gesture. */
+.stripe-bar {
+  height: 13px;
+  border-top: 2px solid var(--rule);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pink) 0 9px,
+    var(--yellow) 9px 18px,
+    var(--teal) 18px 27px,
+    var(--aqua) 27px 36px
+  );
+}
+
 /* --------------------------------------------------------------- masthead */
 
 .masthead {
-  padding: 20px 24px 15px;
-  border-bottom: 1px solid var(--rule-strong);
+  position: relative;
+  padding: 24px 26px 20px;
+  border-bottom: 2px solid var(--rule);
 }
 
 .brand {
   display: flex;
-  align-items: baseline;
-  gap: 11px;
+  align-items: center;
+  gap: 13px;
 }
 
-/* The mark is the shell prompt glyph, in the phosphor. */
+/* The mark is a rotated block with the prompt glyph in it, because a glyph in a
+   box that leans is what this design does to a logo. */
 .brand-mark {
-  font-family: var(--ui);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  font-family: var(--mono);
   font-size: 19px;
   font-weight: 700;
   line-height: 1;
-  color: var(--callout);
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--rule);
+  transform: rotate(-4deg);
+  box-shadow: var(--shadow-sm);
 }
 
 .brand h1 {
   font-family: var(--display);
-  font-size: 16px;
+  font-size: 27px;
   font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: -0.01em;
 }
 
 /*
- * THE PROMPT LINE. The one line of the interface that is not a control: it says
- * what was typed, and it wraps rather than scrolling, because a command the user
- * cannot read is not a command.
+ * A composed cluster of three primitives, not scattered confetti. Bordered,
+ * because everything on this page is on the page; on one optical centre, because
+ * three shapes at three arbitrary heights is how this style becomes a mess.
+ * Withdrawn below 640px, where there is no room for it beside the wordmark.
+ */
+.deco {
+  position: absolute;
+  right: 26px;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 9px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.deco-sq {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 44px;
+  height: 44px;
+  background: var(--pink);
+  border: 2px solid var(--rule);
+  transform: rotate(-7deg);
+  box-shadow: 3px 3px 0 var(--rule);
+}
+
+.deco-tri {
+  grid-column: 2;
+  grid-row: 1;
+  width: 38px;
+  height: 33px;
+  background: var(--aqua);
+  clip-path: polygon(50% 0%, 100% 100%, 0 100%);
+}
+
+.deco-ring {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--peri);
+  border-radius: 50%;
+}
+
+/*
+ * THE PROMPT LINE. Kept from the previous design and kept in mono, because it is
+ * quoting a machine rather than speaking in the page's voice. It wraps rather
+ * than scrolling, because a command the user cannot read is not a command.
  */
 .term-prompt {
-  margin-top: 12px;
-  font-family: var(--ui);
-  font-size: 12px;
-  line-height: 1.5;
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.6;
   color: var(--ink-mute);
   overflow-wrap: anywhere;
 }
 
 .term-user {
-  color: var(--callout);
+  color: var(--ink-soft);
+  font-weight: 700;
 }
 
 .term-path {
@@ -652,59 +717,53 @@ code {
 
 /* ------------------------------------------------------------------ layout */
 
-/*
- * THE OUTPUT AREA. The deck is the terminal's output block: a translucent wash
- * over the window's stock rather than an opaque panel, so the screen stays one
- * surface. A filled card would break it into chrome and content.
- */
+/* The deck is the body of the window: paper, not a card laid on paper. */
 .deck {
-  padding: 22px 24px 26px;
-  background: var(--sheet-wash);
+  padding: 24px 26px 28px;
+  background: var(--paper);
 }
 
 /* ----------------------------------------------------------------- buttons */
 
 /*
- * Buttons are commands, not callouts: a label in a box that inverts when you
- * point at it, the way a terminal selection inverts. Nothing on this screen is
- * filled except the primary action.
+ * Buttons are blocks you press, so they carry the smaller shadow and lift a pixel
+ * on hover -- the one bit of motion that says "this is a control" without a
+ * transition doing the talking.
  */
 .btn {
-  gap: 7px;
-  padding: 7px 13px;
+  gap: 8px;
+  padding: 11px 15px;
   font-family: var(--ui);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.3;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   color: var(--ink);
-  background: var(--stock-lift);
-  border: 1px solid var(--rule-strong);
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  background: var(--lift);
+  border: 2px solid var(--rule);
+  transition: transform 110ms ease, box-shadow 110ms ease, background-color 110ms ease;
 }
 
 .btn:hover {
-  color: var(--on-focus);
-  background: var(--callout);
-  border-color: var(--callout);
+  background: var(--yellow);
+  box-shadow: var(--shadow-sm);
+  transform: translate(-1px, -1px);
 }
 
 .btn:active {
-  background: var(--stock-deep);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
-/* The primary action is the one filled box on the screen, in the phosphor. */
+/* The primary action is the one pink block on the screen. */
 .btn-primary {
-  color: var(--on-focus);
-  background: var(--callout);
-  border-color: var(--callout);
+  background: var(--pink);
+  border-color: var(--rule);
 }
 
 .btn-primary:hover {
-  color: var(--on-focus);
-  background: var(--callout);
-  border-color: var(--callout);
+  background: var(--pink);
 }
 
 .btn-quiet {
@@ -714,33 +773,32 @@ code {
 }
 
 .btn-quiet:hover {
-  color: var(--on-focus);
-  background: var(--callout);
-  border-color: var(--callout);
+  color: var(--ink);
+  background: var(--teal);
 }
 
 .btn[aria-pressed="true"] {
-  color: var(--on-focus);
-  background: var(--callout);
-  border-color: var(--callout);
+  background: var(--teal);
 }
 
 .btn:disabled {
   color: var(--ink-mute);
-  border-color: var(--rule);
-  background: var(--stock-deep);
+  background: var(--paper-2);
+  border-color: var(--ink-mute);
+  transform: none;
+  box-shadow: none;
   cursor: default;
 }
 
-/* The shortcut is a bracketed key, the way a shell annotates a binding. */
+/* The shortcut is a bracketed key, the way the page has always annotated one. */
 kbd {
   padding: 0 2px;
-  font-family: var(--ui);
+  font-family: var(--mono);
   font-size: 10px;
   font-weight: 700;
   line-height: 1.5;
   color: inherit;
-  opacity: 0.7;
+  opacity: 0.62;
 }
 
 kbd::before {
@@ -754,16 +812,20 @@ kbd::after {
 /* ------------------------------------------------------------- the plate */
 
 /*
- * THE OUTPUT BLOCK. The secret is what the command printed, so it sits in the
- * recessed field at display size in the terminal's own mono. The phosphor wash
- * behind it is the one glow on the page: a value this important is the one
- * thing allowed to look like it is lit.
+ * THE PLATE. The one element that is not allowed to lean, and the only one whose
+ * type is monospace by necessity rather than by style: character alignment is how
+ * a password is checked. It sits on --paper-3 with the large shadow, because it is
+ * the thing on the page you are meant to read.
+ *
+ * There is no glow. The old design gave this block a phosphor text-shadow, which
+ * was the metaphor earning its keep in a terminal; here the shadow is on the box,
+ * where Memphis puts it.
  */
 .secret {
   display: block;
-  min-height: 112px;
-  padding: 18px 20px;
-  font-family: var(--ui);
+  min-height: 118px;
+  padding: 20px 22px;
+  font-family: var(--mono);
   font-size: var(--secret-size, 26px);
   font-weight: 500;
   line-height: 1.5;
@@ -771,20 +833,17 @@ kbd::after {
   word-break: break-all;
   overflow-wrap: anywhere;
   color: var(--ink);
-  background: var(--stock-deep);
-  border: 1px solid var(--rule-strong);
-  text-shadow: 0 0 10px var(--callout-wash);
+  background: var(--paper-3);
+  border: 2px solid var(--rule);
+  box-shadow: var(--shadow);
 }
 
 /*
- * Character classes, told apart by weight and by one brighter ink. A terminal
- * has no colour vocabulary beyond the phosphor, so the signals are density and a
- * step brighter -- and they survive being reproduced on a monochrome printer,
- * which is the only printer a terminal has.
- *   lowercase  regular
- *   uppercase  bold
- *   digits     phosphor
- *   symbols    phosphor, bold
+ * Character classes, told apart by weight and by one darker ink. The old design
+ * had a phosphor colour to spend here; this one has six, and spending them all on
+ * individual characters would make a password read as a pattern rather than a
+ * string. So: weight for the case, one accent for the digits and symbols, and
+ * everything else stays ink.
  */
 .secret .up {
   font-weight: 700;
@@ -792,12 +851,12 @@ kbd::after {
 }
 
 .secret .dg {
-  color: var(--callout);
+  color: var(--focus);
   font-weight: 500;
 }
 
 .secret .sy {
-  color: var(--callout);
+  color: var(--focus);
   font-weight: 700;
 }
 
@@ -813,71 +872,54 @@ kbd::after {
 
 /* A space has to be visible or a passphrase reads as one word. */
 .secret .sp {
-  background: var(--callout-wash);
-  box-shadow: 0 1px 0 var(--callout-edge);
-}
-
-/* One orchestrated moment: a new value is traced onto the screen. */
-@keyframes phosphor-trace {
-  from {
-    opacity: 0.2;
-    transform: translateX(-3px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.secret.is-fresh {
-  animation: phosphor-trace 170ms ease-out;
+  background: var(--teal);
 }
 
 /* The hinge is the command's own summary line: what was printed, in what quantity. */
 .hinge {
-  margin-top: 11px;
-  padding-left: 10px;
-  border-left: 2px solid var(--callout);
-  font-family: var(--ui);
+  margin-top: 16px;
+  padding-left: 11px;
+  border-left: 4px solid var(--coral);
+  font-family: var(--mono);
   font-size: 10.5px;
-  line-height: 1.5;
+  line-height: 1.6;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.05em;
   color: var(--ink-mute);
 }
 
 .notice {
   margin-top: 10px;
-  font-family: var(--ui);
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--ink-soft);
   min-height: 1.2em;
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
 }
 
 .notice-error {
-  color: var(--callout);
+  color: var(--focus);
   font-weight: 700;
 }
 
 .actions {
-  gap: 8px;
-  margin-top: 14px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .actions .btn {
-  padding: 9px 13px;
-  font-size: 11.5px;
+  padding: 11px 15px;
+  font-size: 12.5px;
 }
 
 /* Transient, and separate from the hinge: a note pinned to the margin. */
 .flash {
-  margin-top: 10px;
-  padding: 6px 10px;
-  border: 1px dashed var(--rule-strong);
-  font-family: var(--ui);
+  margin-top: 12px;
+  padding: 7px 11px;
+  border: 2px dashed var(--rule);
+  font-family: var(--mono);
   font-size: 11.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--ink-soft);
   opacity: 0;
   transition: opacity 240ms ease;
@@ -890,13 +932,22 @@ kbd::after {
 /* ------------------------------------------------------------------ gauge */
 
 /*
- * THE BAR. Where the blueprint drew a dimension line with witness ticks, a
- * terminal draws a bar: a rule, a filled span, and the scale above it. The
- * witness ticks survive as the scale, because the bit boundaries are real
- * readings and not decoration.
+ * THE GAUGE. A stripe: solid blocks of colour with the paper showing through the
+ * gaps, rather than a bar that fills. The tier boundary ticks survive from the
+ * blueprint design, because the bit thresholds are real readings and not
+ * decoration.
+ *
+ * The panel leans by half a degree -- enough to read as deliberate, not enough to
+ * look like an accident -- and stops leaning on a phone, where it would lean into
+ * the margin.
  */
 .verdict {
-  margin-top: 20px;
+  margin-top: 24px;
+  padding: 16px 18px 18px;
+  border: 2px solid var(--rule);
+  background: var(--lift);
+  box-shadow: var(--shadow-sm);
+  transform: rotate(0.5deg);
 }
 
 .meter-head {
@@ -911,247 +962,255 @@ kbd::after {
   font-family: var(--display);
   font-size: 19px;
   font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.01em;
 }
 
 .meter-bits {
-  font-family: var(--ui);
-  font-size: 13px;
+  font-family: var(--mono);
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--ink-soft);
 }
 
 .meter-scale {
   position: relative;
-  height: 13px;
-  margin-bottom: -1px;
+  height: 14px;
+  margin-bottom: 4px;
   background-image: linear-gradient(
     90deg,
     transparent 0,
     transparent 21.875%,
     var(--ink-mute) 21.875%,
-    var(--ink-mute) calc(21.875% + 1px),
-    transparent calc(21.875% + 1px),
+    var(--ink-mute) calc(21.875% + 2px),
+    transparent calc(21.875% + 2px),
     transparent 28.125%,
     var(--ink-mute) 28.125%,
-    var(--ink-mute) calc(28.125% + 1px),
-    transparent calc(28.125% + 1px),
+    var(--ink-mute) calc(28.125% + 2px),
+    transparent calc(28.125% + 2px),
     transparent 46.875%,
-    var(--callout) 46.875%,
-    var(--callout) calc(46.875% + 2px),
+    var(--focus) 46.875%,
+    var(--focus) calc(46.875% + 2px),
     transparent calc(46.875% + 2px),
     transparent 58.594%,
     var(--ink-mute) 58.594%,
-    var(--ink-mute) calc(58.594% + 1px),
-    transparent calc(58.594% + 1px),
+    var(--ink-mute) calc(58.594% + 2px),
+    transparent calc(58.594% + 2px),
     transparent 78.125%,
     var(--ink-mute) 78.125%,
-    var(--ink-mute) calc(78.125% + 1px),
-    transparent calc(78.125% + 1px),
+    var(--ink-mute) calc(78.125% + 2px),
+    transparent calc(78.125% + 2px),
     transparent 100%
   );
 }
 
-/* The rule the span is measured against: a recessed track, not a solid edge. */
 .meter-track {
-  height: 14px;
-  border: 1px solid var(--rule-strong);
-  background: var(--stock-deep);
+  height: 18px;
+  border: 2px solid var(--rule);
+  background: var(--paper-2);
 }
 
+/*
+ * The gaps are a background-image over the tier's background-color, so the tier
+ * classes stay colour-only and app.js keeps writing `class = 'meter-fill tier-N'`
+ * without knowing anything about the pattern.
+ */
 .meter-fill {
   width: var(--fill, 0%);
   height: 100%;
-  background: var(--ink-soft);
+  background-color: var(--ink-soft);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 13px,
+    var(--paper-2) 13px 15px
+  );
   transition: width 200ms ease, background-color 200ms ease;
 }
 
 /*
  * Two readings, not six: below the threshold the number is a problem, above it
- * the number stops being one. Splitting it further would be decoration; the
- * verdict word carries the rest.
+ * the number stops being one. Coral is the problem; aqua is the answer.
  */
 .meter-fill.tier-0,
 .meter-fill.tier-1,
 .meter-fill.tier-2 {
-  background: var(--callout);
+  background-color: var(--coral);
 }
 
 .meter-fill.tier-3,
 .meter-fill.tier-4,
 .meter-fill.tier-5 {
-  background: var(--verified);
+  background-color: var(--aqua);
 }
 
 .meter-verdict.tier-0,
 .meter-verdict.tier-1,
 .meter-verdict.tier-2 {
-  color: var(--callout);
+  color: var(--focus);
 }
 
 .meter-verdict.tier-3,
 .meter-verdict.tier-4,
 .meter-verdict.tier-5 {
-  color: var(--verified);
+  color: var(--ink);
 }
 
 /* ---------------------------------------------------------------- settings */
 
-/*
- * Mode tabs are the flags of the command: four cells in one box, sharing the
- * dividers. The selected one is the phosphor, because a terminal marks the
- * active flag by inverting it.
- */
+/* Mode tabs: four blocks with gaps rather than shared dividers, because this
+   design separates things with space and leaning, not by drawing one box. */
 .modes {
-  gap: 0;
+  gap: 7px;
   padding: 0;
-  margin-bottom: 13px;
-  border: 1px solid var(--rule-strong);
+  margin-bottom: 14px;
 }
 
 .mode {
-  padding: 7px 6px;
+  padding: 9px 6px;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--lift);
+  border: 2px solid var(--rule);
+  cursor: pointer;
+  transition: transform 110ms ease, box-shadow 110ms ease, background-color 110ms ease;
+}
+
+.mode:hover {
+  background: var(--yellow);
+  transform: rotate(-1deg);
+}
+
+.mode[aria-checked="true"] {
+  background: var(--pink);
+  box-shadow: var(--shadow-sm);
+  transform: rotate(-2.2deg);
+}
+
+.presets {
+  gap: 9px;
+  padding-bottom: 22px;
+  margin-bottom: 0;
+}
+
+/* Chips lean by different amounts, and never by the same one twice: three chips
+   at three identical angles would read as a grid that had slipped. */
+.chip {
+  padding: 5px 11px;
   font-family: var(--ui);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+  color: var(--ink);
   background: transparent;
-  border: 0;
-  border-right: 1px solid var(--rule-strong);
+  border: 2px solid var(--rule);
   cursor: pointer;
-  transition: color 120ms ease, background-color 120ms ease;
+  transition: background-color 110ms ease, transform 110ms ease;
 }
 
-.mode:last-child {
-  border-right: 0;
+.chip:nth-child(1) {
+  transform: rotate(-2.6deg);
 }
 
-.mode:hover {
-  color: var(--on-focus);
-  background: var(--callout);
+.chip:nth-child(2) {
+  transform: rotate(1.9deg);
 }
 
-.mode[aria-checked="true"] {
-  color: var(--on-focus);
-  background: var(--callout);
-}
-
-.presets {
-  gap: 7px;
-  padding-bottom: 13px;
-  margin-bottom: 15px;
-  border-bottom: 1px solid var(--rule-strong);
-}
-
-.chip {
-  padding: 4px 10px;
-  font-family: var(--ui);
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-soft);
-  background: transparent;
-  border: 1px solid var(--rule-strong);
-  cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+.chip:nth-child(3) {
+  transform: rotate(-1.3deg);
 }
 
 .chip:hover {
-  color: var(--on-focus);
-  background: var(--callout);
-  border-color: var(--callout);
+  background: var(--aqua);
 }
 
 .mode-panel {
   gap: 18px;
 }
 
-/*
- * The one control that is always on screen, between the strength readout and the
- * disclosure. A rule above it, because a terminal separates zones with a rule.
- */
+/* The one control that is always on screen, between the gauge and the rest. */
 .always-on {
-  margin-top: 20px;
-  padding-top: 17px;
-  border-top: 1px solid var(--rule-strong);
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--rule);
 }
 
 .field {
-  gap: 7px;
+  gap: 8px;
 }
 
-/* Field labels are command flags, so they are uppercased and dimmed. */
+/* Field labels are the page's small voice: upper case, spaced, and dimmed. */
 .field > label,
 .toggles legend {
   font-family: var(--ui);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.11em;
   color: var(--ink-mute);
 }
 
 .field-row {
-  gap: 11px;
+  gap: 12px;
 }
 
 .field-row > input[type="number"] {
-  width: 78px;
+  width: 84px;
 }
 
 .hint {
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 12.5px;
+  line-height: 1.6;
   color: var(--ink-mute);
 }
 
-/* range -- a bar you drag, with the scale under it */
+/* range -- a bar you drag, with a block for a thumb */
 
 input[type="range"] {
-  height: 24px;
+  height: 26px;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 3px;
-  background: var(--rule-strong);
+  height: 4px;
+  background: var(--rule);
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 4px;
-  height: 20px;
+  width: 16px;
+  height: 22px;
   margin-top: -9px;
-  border: 1px solid var(--ink);
-  background: var(--ink);
-  /* The gap either side keeps the nib legible where it crosses the track. */
-  box-shadow: 0 0 0 3px var(--stock);
+  border: 2px solid var(--rule);
+  border-radius: 0;
+  background: var(--pink);
+  box-shadow: 2px 2px 0 var(--rule);
 }
 
 input[type="range"]::-moz-range-track {
-  height: 3px;
-  background: var(--rule-strong);
+  height: 4px;
+  background: var(--rule);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 4px;
-  height: 19px;
-  border: 1px solid var(--ink);
+  width: 14px;
+  height: 20px;
+  border: 2px solid var(--rule);
   border-radius: 0;
-  background: var(--ink);
-  box-shadow: 0 0 0 3px var(--stock);
+  background: var(--pink);
 }
 
 input[type="range"]:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px var(--stock), 0 0 0 5px var(--focus);
+  box-shadow: 2px 2px 0 var(--rule), 0 0 0 3px var(--paper), 0 0 0 5px var(--focus);
 }
 
 input[type="range"]:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 3px var(--stock), 0 0 0 5px var(--focus);
+  box-shadow: 2px 2px 0 var(--rule), 0 0 0 3px var(--paper), 0 0 0 5px var(--focus);
 }
 
 /* number / text / select / textarea */
@@ -1159,13 +1218,13 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 input[type="number"],
 .text-input {
   width: 100%;
-  padding: 7px 10px;
-  font-family: var(--ui);
-  font-size: 12px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 13px;
   color: var(--ink);
-  background: var(--stock-lift);
-  border: 1px solid var(--rule-strong);
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  background: var(--lift);
+  border: 2px solid var(--rule);
+  transition: background-color 120ms ease, box-shadow 120ms ease;
 }
 
 input[type="number"] {
@@ -1175,26 +1234,27 @@ input[type="number"] {
 
 textarea.text-input {
   resize: vertical;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 input::placeholder,
 textarea::placeholder {
   color: var(--ink-mute);
-  opacity: 0.68;
+  opacity: 0.8;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--callout);
-  box-shadow: 0 0 0 2px var(--callout-wash);
+  background: var(--lift);
+  box-shadow: var(--shadow-sm);
 }
 
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: none;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 /* The caret is drawn with two gradients: appearance:none otherwise leaves the
@@ -1222,29 +1282,27 @@ select.text-input {
 .toggle {
   gap: 10px;
   padding: 6px 8px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .toggle:hover {
-  background: var(--stock-lift);
+  background: var(--lift);
   border-color: var(--rule);
 }
 
-/* The checkbox is an empty cell that gets a tick when it is filled in. */
+/* The checkbox is a block that fills in. */
 .toggle input {
   width: 16px;
   height: 16px;
   margin: 3px 0 0;
-  background: var(--stock-lift);
-  border: 1px solid var(--rule-strong);
-  transition: border-color 120ms ease;
+  background: var(--lift);
+  border: 2px solid var(--rule);
+  transition: background-color 120ms ease;
 }
 
 .toggle input:checked {
-  background: var(--stock-lift);
-  border-color: var(--callout);
-  border-width: 2px;
+  background: var(--yellow);
 }
 
 .toggle input:checked::after {
@@ -1254,7 +1312,7 @@ select.text-input {
   top: 0;
   width: 5px;
   height: 9px;
-  border: solid var(--callout);
+  border: solid var(--ink);
   border-width: 0 2px 2px 0;
   transform: rotate(42deg);
 }
@@ -1262,14 +1320,14 @@ select.text-input {
 .toggle span {
   gap: 2px;
   font-family: var(--ui);
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--ink);
 }
 
 .toggle small.keep {
   font-family: var(--ui);
-  font-size: 11.5px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--ink-mute);
 }
 
@@ -1278,63 +1336,54 @@ select.text-input {
 .disclosure,
 .advanced,
 .adjust {
-  border: 1px solid var(--rule-strong);
-  background: var(--sheet-bar);
+  border: 2px solid var(--rule);
+  background: var(--lift);
 }
 
 .disclosure > summary,
 .advanced > summary,
 .adjust > summary {
-  gap: 9px;
-  padding: 8px 11px;
+  gap: 10px;
+  padding: 10px 13px;
   font-family: var(--ui);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-soft);
-  transition: color 120ms ease, background-color 120ms ease;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  transition: background-color 120ms ease;
 }
 
 .disclosure > summary:hover,
 .advanced > summary:hover,
 .adjust > summary:hover {
-  color: var(--callout);
-  background: var(--stock-lift);
+  background: var(--yellow);
 }
 
-/* The marker is a prompt glyph, and it turns to point down when the panel opens. */
+/* The marker is a diamond, which is a square in this design turned once. */
 .disclosure > summary::before,
 .advanced > summary::before,
 .adjust > summary::before {
-  content: "\25B8";
-  width: 1.5em;
-  font-weight: 700;
-  color: var(--callout);
-}
-
-.disclosure[open] > summary::before,
-.advanced[open] > summary::before,
-.adjust[open] > summary::before {
-  content: "\25BE";
-}
-
-.disclosure[open],
-.advanced[open],
-.adjust[open] {
-  background: var(--sheet-open);
+  content: "";
+  width: 11px;
+  height: 11px;
+  flex: none;
+  background: var(--coral);
+  border: 2px solid var(--rule);
+  transform: rotate(45deg);
 }
 
 .disclosure[open] > summary,
 .advanced[open] > summary,
 .adjust[open] > summary {
-  border-bottom: 1px solid var(--rule-strong);
+  background: var(--paper-2);
+  border-bottom: 2px solid var(--rule);
 }
 
 .disclosure > *:not(summary),
 .advanced > *:not(summary),
 .adjust > *:not(summary) {
-  margin: 12px;
+  margin: 14px;
 }
 
 /*
@@ -1361,33 +1410,45 @@ select.text-input {
 /* ---------------------------------------------------------------- receipts */
 
 .lede {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.65;
   color: var(--ink-soft);
   margin-bottom: 16px;
 }
 
 /*
- * THE ZEROS ARE THE PRODUCT. Each figure gets a cell and the number is the largest
- * thing in this section, because "0 network calls" is the claim the whole page
- * exists to support. The cells share hairlines so the block reads as one ruled
- * schedule rather than six separate boxes.
+ * THE ZEROS ARE THE PRODUCT. Each figure gets a cell, and the number is the
+ * largest thing in this section, because "0 network calls" is the claim the whole
+ * page exists to support. The cells are divided by paper showing through rather
+ * than by hairlines, which is how this design divides anything.
  */
 .counters {
   gap: 0;
   background: transparent;
-  border: 1px solid var(--rule-strong);
+  border: 2px solid var(--rule);
 }
 
 .counter {
-  gap: 3px;
-  padding: 10px 11px 11px;
-  background: var(--sheet-bar);
-  border-bottom: 1px solid var(--rule);
-  border-right: 1px solid var(--rule);
+  gap: 4px;
+  padding: 12px 13px;
+  background: var(--lift);
+  border-bottom: 2px solid var(--paper-3);
+  border-right: 2px solid var(--paper-3);
 }
 
+.counter:nth-child(2n) {
+  border-right: 0;
+}
+
+.counter:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+/* A marker rather than an icon: one square, three colours across the block. */
 .counter dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-family: var(--ui);
   font-size: 10px;
   font-weight: 700;
@@ -1396,27 +1457,44 @@ select.text-input {
   color: var(--ink-mute);
 }
 
+.counter dt::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: none;
+  background: var(--aqua);
+  border: 1px solid var(--rule);
+}
+
+.counter:nth-child(2) dt::before {
+  background: var(--yellow);
+}
+
+.counter:nth-child(3) dt::before {
+  background: var(--pink);
+}
+
 .counter dd {
-  font-family: var(--ui);
-  font-size: 25px;
+  font-family: var(--mono);
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.14;
-  color: var(--verified);
+  color: var(--ink);
   white-space: nowrap;
 }
 
 .counter dd.counter-alarm {
-  color: var(--callout);
+  color: var(--focus);
 }
 
 /*
  * The origin is a string rather than a measured count, so it keeps a small type
- * size instead of borrowing the 25px figure. The cell says "these are the
+ * size instead of borrowing the 26px figure. The cell says "these are the
  * counters"; the type says which of them are counts.
  */
 .counter dd.counter-text {
   margin-top: auto;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.45;
   color: var(--ink-soft);
@@ -1425,51 +1503,52 @@ select.text-input {
 }
 
 .counter-note {
-  margin-top: 13px;
-  font-size: 12px;
-  line-height: 1.58;
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
   color: var(--ink-mute);
 }
 
 /*
- * The crack table is the other ruled schedule in this section, so it is drawn the
- * same way as .counters: hairlines between rows, a heavier rule under the header,
- * and no box. Two columns, not three -- the detail is the definition of each
- * attack model, so folding it under the label keeps it readable at 390px instead
- * of dropping the sentence that explains the whole table.
+ * The crack table is the other ruled schedule in this section, and it follows the
+ * same rule as the counter block: heavy rule at the head and the foot, paper
+ * showing through inside. Two columns, not three -- the detail is the definition
+ * of each attack model, so folding it under the label keeps it readable at 390px
+ * instead of dropping the sentence that explains the whole table.
  */
 .crack caption {
   caption-side: top;
   text-align: left;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.6;
   color: var(--ink-soft);
   padding-bottom: 10px;
 }
 
 .crack thead th {
-  padding: 0 0 6px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  padding: 0 0 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: left;
   color: var(--ink-mute);
-  border-bottom: 1px solid var(--rule-strong);
+  border-bottom: 3px solid var(--rule);
 }
 
 .crack tbody td {
-  padding: 9px 0;
+  padding: 10px 0;
   vertical-align: top;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1.5px solid var(--paper-3);
 }
 
 .crack tbody tr:last-child td {
-  border-bottom: 0;
+  border-bottom: 3px solid var(--rule);
 }
 
 .crack .c-name {
   display: block;
+  font-weight: 700;
 }
 
 .crack .c-detail {
@@ -1480,13 +1559,13 @@ select.text-input {
 }
 
 .crack tbody td.c-time {
-  padding-left: 12px;
+  padding-left: 14px;
 }
 
 .channel-list {
   display: grid;
   gap: 0;
-  font-family: var(--ui);
+  font-family: var(--mono);
   font-size: 11.5px;
 }
 
@@ -1496,7 +1575,7 @@ select.text-input {
   justify-content: space-between;
   gap: 10px;
   padding: 4px 0;
-  border-bottom: 1px dotted var(--rule-strong);
+  border-bottom: 1.5px dotted var(--ink-mute);
 }
 
 .channel-row:last-child {
@@ -1509,42 +1588,42 @@ select.text-input {
 }
 
 .channel-count {
-  color: var(--verified);
+  color: var(--ink);
   white-space: nowrap;
 }
 
 .channel-row.is-hit .channel-count {
-  color: var(--callout);
+  color: var(--focus);
   font-weight: 700;
 }
 
 .channel-idle {
   font-family: var(--ui);
-  font-size: 12px;
-  line-height: 1.58;
+  font-size: 12.5px;
+  line-height: 1.6;
   color: var(--ink-mute);
 }
 
 /* The policy is quoted verbatim from the document head, so it is set as a block
-   with the phosphor bar in the margin -- a quoted note, not a code listing. */
+   with a colour bar in the margin -- a quoted note, not a code listing. */
 .policy {
   margin: 0;
-  padding: 12px;
-  font-family: var(--ui);
+  padding: 13px;
+  font-family: var(--mono);
   font-size: 11px;
-  line-height: 1.68;
+  line-height: 1.7;
   color: var(--ink-soft);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: var(--stock-deep);
-  border: 1px solid var(--rule-strong);
-  border-left: 2px solid var(--callout);
+  background: var(--paper-2);
+  border: 2px solid var(--rule);
+  border-left: 6px solid var(--peri);
 }
 
 .selftest {
   margin-top: 19px;
   padding-top: 17px;
-  border-top: 1px solid var(--rule-strong);
+  border-top: 2px solid var(--rule);
 }
 
 .selftest .hint {
@@ -1578,81 +1657,89 @@ select.text-input {
   grid-template-columns: 17px minmax(0, 1fr);
   gap: 9px;
   padding: 7px 0;
-  border-bottom: 1px dotted var(--rule-strong);
+  border-bottom: 1.5px dotted var(--ink-mute);
 }
 
 .test-mark {
-  font-family: var(--ui);
+  font-family: var(--mono);
   font-weight: 700;
   line-height: 1.5;
 }
 
 .test-pass .test-mark {
-  color: var(--verified);
+  color: var(--ink);
 }
 
 .test-fail .test-mark {
-  color: var(--callout);
+  color: var(--focus);
 }
 
 .test-label {
   font-family: var(--ui);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--ink);
 }
 
 .test-detail {
   font-family: var(--ui);
-  font-size: 11.5px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--ink-mute);
   overflow-wrap: anywhere;
 }
 
-/* The observed value is a reading off the screen, so it is quoted at a smaller
-   size in the softer ink. */
+/* The observed value is a reading off the screen, so it is quoted in mono at a
+   smaller size in the softer ink. */
 .test-observed {
-  font-family: var(--ui);
+  font-family: var(--mono);
   font-size: 10.5px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--ink-soft);
   overflow-wrap: anywhere;
 }
 
 .digest {
   padding: 10px 12px;
-  font-family: var(--ui);
+  font-family: var(--mono);
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--ink);
   overflow-wrap: anywhere;
-  background: var(--stock-deep);
-  border: 1px solid var(--rule-strong);
-  border-left: 2px solid var(--callout);
+  background: var(--paper-2);
+  border: 2px solid var(--rule);
+  border-left: 6px solid var(--peri);
 }
 
 /* ------------------------------------------------------------------ footer */
 
 .footer {
   max-width: var(--page);
-  margin: 26px auto 0;
-  padding: 0 24px 26px;
+  margin: 30px auto 0;
+  padding: 0 22px 26px;
 }
 
+/*
+ * The receipt strip is the one full-width block of colour on the page, and it is
+ * the line the old terminal printed last: 0 network calls. It is teal because
+ * teal is the "nothing happened" colour here, and an alarm swaps the item for
+ * coral rather than only recolouring the figure.
+ */
 .strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px 20px;
-  margin: 0;
-  padding-top: 13px;
-  border-top: 1px solid var(--rule-strong);
-  font-family: var(--ui);
-  font-size: 10px;
+  gap: 6px 22px;
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border: 2px solid var(--rule);
+  background: var(--teal);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--mono);
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-mute);
+  letter-spacing: 0.06em;
+  color: var(--ink);
 }
 
 .strip-item {
@@ -1663,12 +1750,20 @@ select.text-input {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--verified);
+  color: var(--ink);
+}
+
+/* The alarm is a badge on the item, not a repaint of the whole strip, so the
+   figure that moved is the thing that changes colour. */
+.strip-item.strip-alarm {
+  padding: 1px 7px;
+  background: var(--coral);
+  border: 2px solid var(--rule);
 }
 
 .strip-alarm,
 .strip-alarm .strip-value {
-  color: var(--callout);
+  color: var(--ink);
 }
 
 .footer > .disclosure {
@@ -1676,54 +1771,54 @@ select.text-input {
 }
 
 .colophon {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.65;
   color: var(--ink-soft);
 }
 
 .legal {
   padding-top: 15px;
-  border-top: 1px solid var(--rule-strong);
-  font-size: 11.5px;
-  line-height: 1.55;
+  border-top: 2px solid var(--rule);
+  font-size: 12px;
+  line-height: 1.6;
   color: var(--ink-mute);
 }
 
 /* -------------------------------------------------------------- responsive */
 
+@media (max-width: 640px) {
+  /* Three shapes beside a wordmark need room this width does not have. */
+  .deco {
+    display: none;
+  }
+}
+
 @media (max-width: 560px) {
   body {
-    padding: 18px 13px 52px;
+    padding: 20px 13px 56px;
   }
 
   .deck {
-    padding: 15px 13px 17px;
+    padding: 18px 15px 20px;
   }
 
   .masthead {
-    padding: 16px 13px 12px;
+    padding: 20px 15px 16px;
   }
 
   .footer {
-    padding: 0 13px 17px;
+    padding: 0 0 20px;
   }
 
   .modes {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* The shared dividers only work in a single row; in two rows they read as a
-     broken grid, so each cell carries its own bottom rule. */
-  .mode {
-    border-bottom: 1px solid var(--rule-strong);
-  }
-
-  .mode:nth-child(2n) {
-    border-right: 0;
-  }
-
-  .mode:nth-last-child(-n + 2) {
-    border-bottom: 0;
+  /* The plate is the one element that cannot get smaller than its type needs;
+     app.js already scales --secret-size by length, so this only trims the box. */
+  .secret {
+    min-height: 96px;
+    padding: 16px;
   }
 
   .field-row {
@@ -1745,8 +1840,8 @@ select.text-input {
 }
 
 @media (max-width: 360px) {
-  /* The hint cannot hold its own line in the title bar at this width; the
-     title alone still identifies the window. */
+  /* The hint cannot hold its own line in the title bar at this width; the title
+     alone still identifies the window. */
   .term-hint {
     display: none;
   }
@@ -1754,9 +1849,34 @@ select.text-input {
 
 /* ------------------------------------------------------------------ motion */
 
+/*
+ * One orchestrated moment: a new value is stamped onto the plate. It is a scale
+ * and an opacity, not a translate -- the plate is the one block on the page that
+ * is not allowed to move, and an animation that slid it sideways would undo that
+ * in a single frame.
+ */
+@keyframes plate-stamp {
+  from {
+    opacity: 0.35;
+    transform: scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.secret.is-fresh {
+  animation: plate-stamp 170ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .secret.is-fresh {
     animation: none;
+  }
+
+  .verdict {
+    transform: none;
   }
 }
 
@@ -1770,12 +1890,19 @@ select.text-input {
     <span class="tl-dot" aria-hidden="true"></span>
     <span class="tl-dot tl-y" aria-hidden="true"></span>
     <span class="tl-dot tl-g" aria-hidden="true"></span>
-    <span class="term-title">passgen &middot; zsh</span>
+    <span class="term-title">passgen</span>
     <span class="term-hint">G regenerate &middot; C copy</span>
   </div>
 
   <div class="term-body">
 <header class="masthead">
+  <!-- Three primitives, decorative, hidden from assistive tech: the one place
+       this design puts shapes that are not carrying information. -->
+  <div class="deco" aria-hidden="true">
+    <span class="deco-sq"></span>
+    <span class="deco-tri"></span>
+    <span class="deco-ring"></span>
+  </div>
   <div class="brand">
     <span class="brand-mark" aria-hidden="true">#</span>
     <h1>passgen</h1>
@@ -2104,6 +2231,8 @@ select.text-input {
   </details>
 </footer>
   </div>
+
+  <div class="stripe-bar" aria-hidden="true"></div>
 </div>
 
 <noscript>
@@ -2119,13 +2248,13 @@ select.text-input {
 'use strict';
 
 /* passgen 1.0.0 -- generated by tools/build.mjs, do not edit by hand.
- * source digest: 5a7b396df5b5f33cb788a11e5a1fe210c098580864254faf8d76370de8c070ed
+ * source digest: a478dbc5398b388b7f2ad1b6b1972ca8441e4c0f95acd57fdb2298fe4ea08b1b
  * Edit src/ and run: npm run build
  */
 var PG = window.PG = window.PG || {};
 PG.BUILD = {
   version: "1.0.0",
-  sourceDigest: "5a7b396df5b5f33cb788a11e5a1fe210c098580864254faf8d76370de8c070ed",
+  sourceDigest: "a478dbc5398b388b7f2ad1b6b1972ca8441e4c0f95acd57fdb2298fe4ea08b1b",
   builtFrom: ["lib/random.js","lib/entropy.js","lib/generators.js","lib/wordlist.js","lib/integrity.js","lib/controls.js","app.js","styles.css"],
 };
 

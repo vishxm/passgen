@@ -36,11 +36,12 @@ npm run check          # build + test + verify
 There is one design, and one stylesheet: `src/styles.css`. It opens in two halves
 &mdash; a structural layer that keeps the page working whatever it looks like, and
 the drawing itself &mdash; and the order of the two is load-bearing. The page is a
-terminal: a window with a title bar of three dots, a prompt line reading
-`you@machine$ passgen`, the secret as the command's output block, and a receipt
-strip that reports `0 network calls` as the last line of output. Mono throughout,
-because a terminal has one face; one phosphor-green accent, because a terminal
-has one colour; a 3px scanline across the field rather than a ruled grid.
+window: a title bar with three shapes, a prompt line reading `you@machine$
+passgen`, the secret as a large monospace plate, and a receipt strip that reports
+`0 network calls`. The drawing is Memphis, softened &mdash; heavy keylines, blocks
+of desaturated 1980s colour, and hard offset shadows instead of blurred ones.
+Futura for the chrome and monospace for anything you have to check character by
+character.
 
 Requires **Node 22+** for the tooling. The page itself needs nothing but a
 browser.
@@ -126,7 +127,7 @@ another tick in that table.
 
 ## One window, in causal order
 
-The whole interface is one terminal window, 780px wide, and it reads in the
+The whole interface is one window, 780px wide, and it reads in the
 order you actually use it:
 
 1. **What kind of thing** &mdash; four modes, then three presets.
@@ -331,41 +332,60 @@ vercel.json           deploy settings and the headers a host must send
 LICENSE               MIT, for this project's own code
 ```
 
-### The night stock, and why there is no toggle for it
+### One stock, one scheme, and still no toggle
 
-The page is a phosphor field with a green trace, and it is the same screen with
-the backlight up when your OS asks for a light one. A
-`@media (prefers-color-scheme: dark)` block in `src/styles.css` redeclares the
-`:root` tokens on a near-black green stock and lightens the ink to meet it. There
-is no other moving part: no JavaScript, no button, no new markup.
+The page is light only. There is no `prefers-color-scheme` block, and `<meta
+name="color-scheme" content="light">` says so &mdash; without that tag the browser
+paints its own scrollbars and form controls for a dark desktop while the page
+itself stays paper, which is the one way a light-only page still goes half-dark
+on you.
 
-**There is deliberately no toggle.** The obvious build — a switch that remembers
-itself — writes the theme to `localStorage`, and this page asserts in its own
+A night stock existed under the previous design and went with it, deliberately.
+It was there because a phosphor terminal is green-on-dark and the day version was
+"the same screen with the backlight up". Memphis is a printed surface, and
+printing has no night. Keeping a dark palette for a design with no dark idiom
+would have meant maintaining two copies of one token list, and the copy that
+rots is always the one nobody looks at.
+
+**The cost, stated plainly.** Opening this at midnight gives you a bright page.
+That is a real cost and not a small one. The mitigation is a softer contrast
+rather than an inversion: body ink is `#3a302a` on `#fbf1df`, **11.46:1** — down
+from the terminal's 14.58:1 — and the plate puts 18&ndash;36px monospace on
+`#eedcbc` at **9.53:1**. Both clear AA comfortably and neither is the
+near-black-on-near-white jump that makes a page feel like a lightbox. The single
+biggest eye-strain fix was not the ink at all: the scanline field that used to sit
+behind every word is now in the page margin, and the window is opaque.
+
+**There is still deliberately no toggle**, and the reason is unchanged: a switch
+that remembers itself writes to `localStorage`, and this page asserts in its own
 self-test that nothing is stored (`integrity.js`, *Nothing is stored for this
-page*, whose `pass` is `total === 0`). One click of that toggle would turn a
-green row red and falsify the matrix above. `prefers-color-scheme` is a media
-query, not a storage API, so nothing in the receipts panel can ever move. If a
-toggle is ever wanted, the version that keeps the receipts honest is
-`#theme=dark` in the URL fragment — not `localStorage`.
+page*, whose `pass` is `total === 0`). One click of that toggle would turn a green
+row red and falsify the matrix below.
 
-The dark palette was searched rather than eyeballed. The same contrast bars the
-light stock is held to — `--ink-mute` 4.5:1, `--rule-strong` 3:1 — are used as a
-filter, and every dark value clears its light counterpart: `--ink` 17.34 (light
-14.58), `--ink-mute` 8.56 (4.63), `--callout` and `--verified` 11.72 (6.31), and
-`--rule-strong` 3.71 (3.09) against the 3:1 non-text requirement.
+The palette is the reference Memphis set, desaturated about a fifth, and chosen
+by search rather than by eye. Ink `#3a302a` on each surface:
 
-The title bar sits on `--stock-deep` rather than `--stock`, where `--ink-soft`
-measures 12.95:1 at night and 8.48:1 by day. The chrome is held to the same
-4.5:1 bar as body text.
+| | ratio | used as |
+| --- | --- | --- |
+| yellow `#f7d06b` | 8.67:1 | checked toggles, hover |
+| teal `#9ec9c5` | 7.10:1 | the receipt strip, space marks |
+| aqua `#74c7bc` | 6.50:1 | the good tier of the gauge |
+| pink `#f58cc8` | 5.79:1 | the primary action, the active tab |
+| coral `#f0836f` | 5.00:1 | the hinge rule, the bad tier, the alarm |
+| periwinkle `#7e8cc4` | 3.93:1 | **borders and the ring only** — never under text |
+
+The reference values fail text contrast on paper outright — `#FF71CE` 2.20,
+`#FFCE5C` 1.32, `#86CCCA` 1.63 — which is why all six are blocks with type on
+them rather than the type colour itself.
 
 Two tests hold this up, in the section of `test/build.test.mjs` that exists to
 catch a stylesheet which still parses and has quietly stopped responding:
 
-- the night block redeclares every colour token the day block does, so a token
-  added to one and forgotten in the other cannot ship
-- no hex and no `rgba()` survives outside the two palette blocks, because a
-  `@media` block cannot reach a literal — that is the precondition for the whole
-  approach, and it is why the washes and the scanlines are tokens too
+- no `@media (prefers-color-scheme: dark)` block may reappear, and the markup must
+  keep declaring `color-scheme: light` — that pair is what stops a leftover night
+  palette, or a stale meta tag, from half-restoring dark mode
+- no hex and no `rgba()` survives outside the palette block, so the palette stays
+  one editable thing and a recolour cannot leave a value behind in a rule
 
 `src/lib/controls.js` is the reason the control logic is tested at all.
 `src/app.js` is wiring &mdash; it reads elements, calls the generators, writes
@@ -427,13 +447,13 @@ script. `node --test` loads them by lending them a `window`.
   install would read zero forever, so a zero is only worth what the positive
   control below says it is worth.
 - There is no print stylesheet. Printing is left entirely to the browser, so
-  `Cmd+P` prints the page as it appears on screen: the palette, the scanlines, the
-  window, and the colour coding on the characters.
+  `Cmd+P` prints the page as it appears on screen: the palette, the dot field in
+  the margin, the window, and the colour coding on the characters.
 
 ### Which browsers this has actually been run in
 
-Checked on 21 October 2026 against `dist/index.html` with SHA-256
-`40972a00963e977b5a4ae00f496bbc8affaf1b6438011763c92425fcbdd4f282`, from **both**
+Checked on 14 November 2026 against `dist/index.html` with SHA-256
+`95b9af2b576120726272ae877c3f3dd3c42e58102ea3cd84260cf30dd8c7fde8`, from **both**
 `file://` and `http://localhost:8080`. Every cell below was measured in all six
 engine-and-origin combinations and the two origins never disagreed on a cell in
 the table:
@@ -449,12 +469,21 @@ the table:
 | Hash lock holds against a one-byte edit | yes | yes | yes |
 | 390 px wide, no horizontal overflow | yes | yes | yes |
 | 320 px wide, no horizontal overflow | yes | yes | yes |
-| Title bar text at least 4.5:1 in both schemes | yes | yes | yes |
+| Title bar text at least 4.5:1 | 6.47:1 | 6.47:1 | 6.47:1 |
+
+The matrix also emulates a dark OS preference and measures the chrome again. Every
+cell comes back identical, which is the light-only design proving itself: there is
+no second palette for `prefers-color-scheme` to reach, so the title bar is 6.47:1
+whether the desktop is light or dark.
 
 `tools/browser-matrix.sh` reproduces this table. It installs Playwright into a
 temporary directory and removes it on exit, so the repository keeps its empty
-`dependencies` block and `npm run check` still needs nothing but Node. The title
-bar measured 8.48:1 in the day palette and 12.95:1 at night in every engine.
+`dependencies` block and `npm run check` still needs nothing but Node.
+
+The restyle did not change a single behavioural cell — 9 / 9, 5 of 6, 6 of 6,
+storage at zero, no overflow at 320, 390 or 1280 px, and the same clipboard counts
+(8 on Chromium over `file://`, 4 everywhere else) reproduce exactly as they did
+against the terminal build.
 
 The build of WebKit above is the one Playwright ships, which is not the same
 binary as Safari.app. Safari itself is untested here: it gates the clipboard on a
@@ -464,7 +493,7 @@ headlessly. Assume nothing about Safari that is not in the table.
 **WebKit logs one console message, and does not act on it.** The message is
 `Refused to apply a stylesheet because its hash ... does not appear in the
 style-src directive`. The sheet is applied anyway: the window measures 780 px, the
-body keeps its monospace stack, and the generator runs. The hash is not wrong
+body keeps its Futura-then-mono stack, and the generator runs. The hash is not wrong
 &mdash; `sha256` of the inline `<style>` text is byte-for-byte the value in the
 policy, and `npm run verify` re-checks it. Two candidate causes were ruled out by
 rebuilding the page with a recomputed hash each time: the one non-ASCII character

@@ -1356,8 +1356,10 @@ select.text-input {
   padding-bottom: 4px;
 }
 
+/* The field keeps the summary's 13px side padding; at 0 the input and its hint
+   sat flush against the panel's own border and read as a second frame. */
 .advanced > .field {
-  margin: 12px 0 9px;
+  margin: 12px 13px 9px;
 }
 
 /* ---------------------------------------------------------------- receipts */

@@ -19,6 +19,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { computeSourceDigest, SCRIPTS, STYLES, VERSION } from './source-digest.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -180,13 +181,28 @@ check('checksum file matches the file', () => {
   return actual.slice(0, 32) + '...';
 });
 
-check('source digest is consistent', () => {
+check('source digest matches src/', () => {
   const inHtml = html.match(/<meta name="generator" content="passgen ([^ ]+) · source ([a-f0-9]{64})">/);
   assert(inHtml, 'generator meta tag is missing or malformed');
   const inScript = scriptText.match(/sourceDigest: "([a-f0-9]{64})"/);
   assert(inScript, 'the script does not declare a source digest');
-  assert(inHtml[2] === inScript[1], 'the page and the script disagree about the source digest');
-  return inScript[1].slice(0, 32) + '... (passgen ' + inHtml[1] + ')';
+  const inVersion = scriptText.match(/version: "([^"]+)"/);
+  assert(inVersion, 'the script does not declare a version');
+
+  // Recompute from src/ rather than only comparing the page's two copies: if the
+  // build ever stops covering an input, this is what notices.
+  const template = readFileSync(join(root, 'src', 'index.html'), 'utf8');
+  const files = [...SCRIPTS, ...STYLES].map((rel) => ({
+    rel,
+    text: readFileSync(join(root, 'src', rel), 'utf8'),
+  }));
+  const expected = computeSourceDigest({ version: VERSION, template, files });
+
+  assert(inHtml[1] === VERSION, 'the page and the build disagree about the version');
+  assert(inVersion[1] === VERSION, 'the script and the build disagree about the version');
+  assert(inHtml[2] === expected, 'the page source digest does not match src/');
+  assert(inScript[1] === expected, 'the script source digest does not match src/');
+  return expected.slice(0, 32) + '... (passgen ' + VERSION + ')';
 });
 
 check('no external references', () => {

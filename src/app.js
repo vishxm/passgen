@@ -760,13 +760,16 @@
 
     var range = $(ceiling.range);
     var number = $(ceiling.number);
+    var min = parseInt(range.min, 10);
     range.max = String(ceiling.max);
     number.max = String(ceiling.max);
 
-    var clamped = controls.clampToCeiling(range.value, ceiling.max);
-    if (clamped === null) return;
-    range.value = String(clamped);
-    number.value = String(clamped);
+    // The range may already have sanitised its own value against the new max
+    // while the number box still holds the old length, so compare both sides
+    // rather than returning as soon as the range looks in range.
+    var sync = controls.syncCeiling(range.value, number.value, ceiling.max, min);
+    if (range.value !== sync.range) range.value = sync.range;
+    if (number.value !== sync.number) number.value = sync.number;
   }
 
   /**
@@ -952,6 +955,9 @@
     integrity.init();
     populateStatics();
     bind();
+    // Cap the initial slider before the first secret is drawn: the markup's
+    // max is the library limit, not the size of the alphabet actually selected.
+    applyLengthCeiling();
     generate();
     renderIntegrity();
     /*

@@ -19,30 +19,13 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, isAbsolute, resolve } from 'node:path';
+import { computeSourceDigest, SCRIPTS, STYLES, VERSION } from './source-digest.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const srcDir = join(root, 'src');
 const outDir = join(root, 'dist');
 const outFile = join(outDir, 'index.html');
 const checksumFile = join(outDir, 'index.html.sha256');
-
-const VERSION = '1.0.0';
-
-// Load order matters: each file attaches itself to the shared PG namespace, and
-// generators.js reads random.js at call time, controls.js reads generators.js at
-// load time, app.js reads everything.
-const SCRIPTS = [
-  'lib/random.js',
-  'lib/entropy.js',
-  'lib/generators.js',
-  'lib/wordlist.js',
-  'lib/integrity.js',
-  'lib/controls.js',
-  'app.js',
-];
-
-// The stylesheets a build concatenates, in order. One, because there is one design.
-const STYLES = ['styles.css'];
 
 /** Substrings that must never appear in the output, with the reason. */
 const FORBIDDEN = [
@@ -167,16 +150,14 @@ function build({ check }) {
 
   // ---------------------------------------------------------------- digest
 
-  // The source digest covers every input file, path included, in load order. It
-  // is what the page displays so you can tell which build you are looking at.
-  const digestHash = createHash('sha256');
-  for (const rel of [...SCRIPTS, ...STYLES]) {
-    digestHash.update(rel, 'utf8');
-    digestHash.update('\0', 'utf8');
-    digestHash.update(sources.get(rel), 'utf8');
-    digestHash.update('\0', 'utf8');
-  }
-  const sourceDigest = digestHash.digest('hex');
+  // The source digest covers VERSION, the markup template, and every script and
+  // stylesheet in load order. tools/verify.mjs recomputes it from src/ with the
+  // same function, so an input the build forgot would fail verification.
+  const sourceDigest = computeSourceDigest({
+    version: VERSION,
+    template,
+    files: [...SCRIPTS, ...STYLES].map((rel) => ({ rel, text: sources.get(rel) })),
+  });
 
   // ---------------------------------------------------------------- banner
 

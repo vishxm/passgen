@@ -122,8 +122,17 @@
 
       var classIndex = classes.length;
       for (var c = 0; c < filtered.chars.length; c++) {
-        flat.push(filtered.chars[c]);
-        charClass[filtered.chars[c]] = classIndex;
+        var ch = filtered.chars[c];
+        // flat has to stay a set: sampleDistinct() and entropy.js both treat it as
+        // one, and a character owned by two classes would make classSizes stop
+        // partitioning alphabetSize. Fail closed rather than silently merging.
+        if (charClass[ch] !== undefined) {
+          throw GeneratorError(
+            'The custom symbol set repeats "' + ch + '", which already belongs to another selected character type.'
+          );
+        }
+        flat.push(ch);
+        charClass[ch] = classIndex;
       }
       classes.push({
         key: def.key,
@@ -197,9 +206,13 @@
           value: candidate.join(''),
           spec: {
             alphabetSize: built.size,
-            classSizes: built.classes.map(function (c) { return c.chars.length; }),
+            // An unconstrained draw does not sample from the subset that hits
+            // every class, so entropy.js must not subtract for a rule that was
+            // not applied. The empty list is the exact unconstrained support.
+            classSizes: requireEach ? built.classes.map(function (c) { return c.chars.length; }) : [],
             length: length,
             distinct: distinct,
+            requireEach: requireEach,
           },
           alphabet: built,
         };

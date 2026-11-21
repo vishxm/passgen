@@ -41,6 +41,9 @@ function bruteForce(alphabetSize, length, classSizes, distinct) {
 
 test('no constraints: bits are length * log2(alphabet)', () => {
   assert.equal(E.bitsForClasses({ alphabetSize: 94, classSizes: [], length: 20 }).toFixed(6), (20 * Math.log2(94)).toFixed(6));
+  // The unconstrained password case: an empty classSizes list is the exact
+  // support when "one of each type" is off, not a conservative understatement.
+  assert.equal(E.bitsForClasses({ alphabetSize: 90, classSizes: [], length: 20 }).toFixed(6), (20 * Math.log2(90)).toFixed(6));
   // A PIN is the k === 0 case: ten digits, no classes to require.
   assert.equal(E.bitsForClasses({ alphabetSize: 10, classSizes: [], length: 6 }).toFixed(6), (6 * Math.log2(10)).toFixed(6));
 });

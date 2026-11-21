@@ -77,6 +77,58 @@ test('a custom symbol set replaces the built-in one', () => {
   assert.equal(built.size, 65);
 });
 
+test('a symbol override that repeats another selected class is refused', () => {
+  // "a" is already a lowercase character. Appending it again would make flat a
+  // multiset: size would count it twice while sampleDistinct could only ever draw
+  // it once, and the entropy spec would no longer partition the alphabet.
+  assert.throws(
+    () => G.buildAlphabet(opts({ symbolsOverride: 'a' })),
+    (err) => {
+      assert.equal(err.name, 'GeneratorError');
+      assert.equal(err.userFacing, true);
+      assert.match(err.message, /repeats "a"/);
+      return true;
+    },
+  );
+});
+
+test('an override that repeats an entire enabled class is refused before sampling', () => {
+  assert.throws(
+    () => G.generatePassword(opts({ symbolsOverride: G.CHARSETS.lower })),
+    /repeats "a"/,
+  );
+  // The check lives in buildAlphabet, so the caller never reaches a draw.
+  assert.throws(() => G.buildAlphabet(opts({ symbolsOverride: G.CHARSETS.lower })), /repeats "a"/);
+});
+
+test('every valid alphabet is a set whose classes partition it', () => {
+  const overrides = ['', '-_.', '~!@'];
+  for (let mask = 0; mask < 16; mask++) {
+    const selected = {
+      useLower: !!(mask & 1),
+      useUpper: !!(mask & 2),
+      useDigits: !!(mask & 4),
+      useSymbols: !!(mask & 8),
+    };
+    for (const symbolsOverride of overrides) {
+      const built = G.buildAlphabet(opts({ ...selected, symbolsOverride }));
+      assert.equal(new Set(built.flat).size, built.size, JSON.stringify({ selected, symbolsOverride }));
+      assert.equal(
+        built.classes.reduce((sum, cls) => sum + cls.chars.length, 0),
+        built.size,
+        'classes must partition the alphabet for ' + JSON.stringify({ selected, symbolsOverride }),
+      );
+    }
+  }
+});
+
+test('no-repeat output stays distinct with a disjoint symbol override', () => {
+  for (let i = 0; i < 200; i++) {
+    const result = G.generatePassword(opts({ length: 20, noRepeat: true, symbolsOverride: '-_.' }));
+    assert.equal(new Set(result.value.split('')).size, 20);
+  }
+});
+
 // ------------------------------------------------------------------ password
 
 test('a password has the requested length and alphabet', () => {
@@ -245,6 +297,19 @@ test('the reported alphabet size matches the characters actually produced', () =
     assert.ok(result.alphabet.flat.includes(ch), ch + ' is not in the alphabet');
   }
   assert.equal(result.spec.alphabetSize, result.alphabet.size);
+});
+
+test('the spec records whether the one-of-each rule was applied', () => {
+  const constrained = G.generatePassword(opts({ requireEach: true }));
+  assert.equal(constrained.spec.requireEach, true);
+  assert.deepEqual(
+    constrained.spec.classSizes,
+    constrained.alphabet.classes.map((cls) => cls.chars.length),
+  );
+
+  const free = G.generatePassword(opts({ requireEach: false }));
+  assert.equal(free.spec.requireEach, false);
+  assert.deepEqual(free.spec.classSizes, [], 'an unconstrained draw has no class constraint to subtract');
 });
 
 // ------------------------------------------------------------------ pin
@@ -426,17 +491,21 @@ const REACHABLE_ERRORS = [
     () => G.generatePassword({ ...DEFAULTS, length: 2, requireEach: true }),
   ],
   [
+    'The custom symbol set repeats',
+    () => G.generatePassword({ ...DEFAULTS, symbolsOverride: 'a' }),
+  ],
+  [
     'These settings leave too few valid passwords',
+    // A valid but deliberately tiny alphabet: one character per class, disjoint.
     // The sampler draws uniformly over the whole alphabet and rejects anything
-    // that misses a required class. With one character in three of the four
-    // classes and a long fourth, that is almost always a rejection -- but only
-    // *almost*, so this one is driven with a pinned draw below rather than left
-    // to chance.
+    // that misses a required class. With the pinned draw below every candidate is
+    // the same character repeated, so this one is driven rather than left to
+    // chance.
     () => stubbed().generatePassword({
       length: 4,
       useLower: true, useUpper: true, useDigits: true, useSymbols: true,
-      symbolsOverride: '0123456789abcdefghijklmnopqrstuv',
-      exclude: 'bcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      symbolsOverride: '!',
+      exclude: 'bcdefghijklmnopqrstuvwxyzBCDEFGHIJKLMNOPQRSTUVWXYZ123456789',
       excludeAmbiguous: false, noRepeat: false, requireEach: true,
     }),
   ],

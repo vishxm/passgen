@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { loadControls } from './helpers.mjs';
+import { computeSourceDigest, SCRIPTS, STYLES, VERSION } from '../tools/source-digest.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const distFile = join(root, 'dist', 'index.html');
@@ -74,6 +75,69 @@ test('the checksum file matches the built file', () => {
   const recorded = readFileSync(checksumFile, 'utf8').trim().split(/\s+/)[0];
   const actual = createHash('sha256').update(readFileSync(distFile)).digest('hex');
   assert.equal(recorded, actual);
+});
+
+// ------------------------------------------------------------ source digest
+
+const TEMPLATE = '<!doctype html>\n<p>hello</p>\n';
+const FILES = [
+  { rel: 'lib/a.js', text: 'var a = 1;' },
+  { rel: 'styles.css', text: '.a { color: red; }' },
+];
+
+function digest(overrides = {}) {
+  return computeSourceDigest({ version: VERSION, template: TEMPLATE, files: FILES, ...overrides });
+}
+
+test('the source digest is deterministic', () => {
+  assert.equal(digest(), digest());
+  assert.match(digest(), /^[a-f0-9]{64}$/);
+});
+
+test('the source digest moves when the template changes', () => {
+  assert.notEqual(digest(), digest({ template: TEMPLATE + ' ' }));
+});
+
+test('the source digest moves when the version changes', () => {
+  assert.notEqual(digest(), digest({ version: VERSION + '-next' }));
+});
+
+test('the source digest moves when a script or style body changes', () => {
+  const changed = FILES.map((file, i) => (i === 1 ? { ...file, text: file.text + ' ' } : file));
+  assert.notEqual(digest(), digest({ files: changed }));
+});
+
+test('the source digest moves when the load order changes', () => {
+  assert.notEqual(digest(), digest({ files: [...FILES].reverse() }));
+});
+
+test('the built page advertises the digest its own src/ computes', () => {
+  const template = readFileSync(join(root, 'src', 'index.html'), 'utf8');
+  const files = [...SCRIPTS, ...STYLES].map((rel) => ({
+    rel,
+    text: readFileSync(join(root, 'src', rel), 'utf8'),
+  }));
+  const expected = computeSourceDigest({ version: VERSION, template, files });
+  const html = readFileSync(distFile, 'utf8');
+
+  assert.ok(html.includes('source ' + expected), 'the meta tag does not carry the recomputed digest');
+  assert.ok(html.includes('sourceDigest: "' + expected + '"'), 'the script does not carry the recomputed digest');
+});
+
+test('the verifier rejects a digest that src/ does not produce', () => {
+  const backup = distFile + '.bak';
+  copyFileSync(distFile, backup);
+  try {
+    const html = readFileSync(distFile, 'utf8');
+    const digestValue = html.match(/source ([a-f0-9]{64})/)[1];
+    writeFileSync(distFile, html.split(digestValue).join('f'.repeat(64)));
+    const output = runExpectingFailure('verify.mjs');
+    const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
+    assert.match(plain, /FAIL\s+source digest matches src\//);
+  } finally {
+    copyFileSync(backup, distFile);
+    unlinkSync(backup);
+  }
 });
 
 test('the verifier notices a tampered script', () => {

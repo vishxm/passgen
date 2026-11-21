@@ -14,7 +14,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "check": "node tools/build.mjs && node --test \"test/**/*.test.mjs\" && node tools/verify.mjs",
     "wordlist": "node tools/make-wordlist.mjs",
-    "serve": "python3 -m http.server 8080"
+    "serve": "python3 -m http.server 8080 --directory dist --bind 127.0.0.1"
   },
   "dependencies": {},
   "devDependencies": {}

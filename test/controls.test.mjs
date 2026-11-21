@@ -72,6 +72,15 @@ test('the ceiling never exceeds the library limit, whatever the alphabet', () =>
   assert.equal(C.lengthCeiling('password', huge).max, LIMITS.password.max);
 });
 
+test('an invalid symbol override leaves the ceiling alone instead of inflating it', () => {
+  // "a" already belongs to lowercase. Before the guard this counted twice and
+  // produced a 63 ceiling for a 62-character distinct alphabet. The generator
+  // refuses it and explains why; the ceiling has nothing valid to clamp to.
+  assert.equal(C.lengthCeiling('password', allClasses({ symbolsOverride: 'a' })), null);
+  // A disjoint override still derives a ceiling from the whole distinct alphabet.
+  assert.equal(C.lengthCeiling('password', allClasses({ symbolsOverride: '-' })).max, 63);
+});
+
 test('the ceiling never drops below the slider minimum of 4', () => {
   // One class, and one character of it after exclusions: the slider still offers
   // 4, and the generator is what refuses. Lowering the slider to 1 would let the
@@ -138,6 +147,23 @@ test('a value that already fits is left alone, and nothing is written back', () 
   assert.equal(C.clampToCeiling('10', 10), null);
   assert.equal(C.clampToCeiling('', 10), null);
   assert.equal(C.clampToCeiling('abc', 10), null);
+});
+
+test('a ceiling change corrects both sides of the pair', () => {
+  // The observed bug: the browser had already sanitised the range to 89 while
+  // the number box still held 128, so the old early return never wrote the box.
+  assert.deepEqual(C.syncCeiling('89', '128', 89, 4), { range: '89', number: '89' });
+  // Before the browser sanitises the range, both still hold the old length.
+  assert.deepEqual(C.syncCeiling('128', '128', 89, 4), { range: '89', number: '89' });
+  // Nothing changes when both already agree, so no extra input event is queued.
+  assert.deepEqual(C.syncCeiling('20', '20', 90, 4), { range: '20', number: '20' });
+});
+
+test('syncCeiling falls back to the ceiling and respects the floor', () => {
+  assert.deepEqual(C.syncCeiling('', '20', 90, 4), { range: '90', number: '90' });
+  assert.deepEqual(C.syncCeiling('abc', '20', 90, 4), { range: '90', number: '90' });
+  assert.deepEqual(C.syncCeiling('1', '1', 90, 4), { range: '4', number: '4' });
+  assert.deepEqual(C.syncCeiling('128', '128', 90, 4), { range: '90', number: '90' });
 });
 
 // ------------------------------------------------------------------ the box
@@ -469,6 +495,17 @@ test('the guarantee is named only when there is more than one class to guarantee
   assert.match(C.specText(two, LIST_SIZE), /one of each type$/);
 });
 
+test('the guarantee is named only when the rule was actually applied', () => {
+  const free = G.generatePassword(allClasses({ requireEach: false }));
+  assert.ok(
+    !/one of each type/.test(C.specText(free, LIST_SIZE)),
+    'a draw that happens to contain every class is not a guarantee',
+  );
+
+  const constrained = G.generatePassword(allClasses({ requireEach: true }));
+  assert.match(C.specText(constrained, LIST_SIZE), /one of each type$/);
+});
+
 test('the hinge reports the rules that are actually on', () => {
   const distinct = C.specText(G.generatePassword(allClasses({ noRepeat: true, length: 12 })), LIST_SIZE);
   assert.match(distinct, /no repeats/);
@@ -484,7 +521,9 @@ test('the hinge reports the rules that are actually on', () => {
 });
 
 test('a one-unit result is named in the singular', () => {
-  assert.match(C.specText(G.generatePassword(allClasses({ length: 1, requireEach: false })), LIST_SIZE), /^1 character ·/);
+  const password = C.specText(G.generatePassword(allClasses({ length: 1, requireEach: false })), LIST_SIZE);
+  assert.match(password, /^1 character ·/);
+  assert.ok(!/one of each type/.test(password), 'the clause must be absent when the rule is off');
   assert.match(C.specText(G.generateCustom({ alphabet: 'ab', length: 1 }), LIST_SIZE), /^1 character ·/);
 });
 

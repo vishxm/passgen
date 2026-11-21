@@ -21,7 +21,17 @@ to *use* it.
 **Or serve it**, if you prefer an origin:
 
 ```sh
-npm run serve          # python3 -m http.server 8080
+npm run serve          # python3 -m http.server 8080 --directory dist --bind 127.0.0.1
+```
+
+Open <http://127.0.0.1:8080/>. The checksum is at
+<http://127.0.0.1:8080/index.html.sha256>. The document root is `dist/` and the
+listener is bound to loopback, so `/.git/`, `src/`, `test/` and ignored files are
+not reachable through it. To preview from another device on purpose, opt in
+explicitly and keep it off untrusted networks:
+
+```sh
+python3 -m http.server 8080 --directory dist --bind 0.0.0.0
 ```
 
 **Or build it yourself** from source:
@@ -128,7 +138,7 @@ would be stale the next time anyone edited `src/`, and a stale
 defence in depth for a page that already refuses to talk to anything.
 
 One thing a host cannot add: the browser matrix below was run against
-`file://` and `http://localhost:8080`. Run the self-test on the deployed URL
+`file://` and `http://127.0.0.1:8080`. Run the self-test on the deployed URL
 before trusting it, and treat a result there as a new data point rather than
 another tick in that table.
 
@@ -269,10 +279,12 @@ A fixed set of checks that re-derive the claims from `dist/index.html` on disk:
 it rebuilds from `src/` first and fails if the shipped file is stale, then slices
 the inline script and stylesheet back out of the HTML, recomputes their SHA-256,
 and compares those against the hashes the page claims in its own policy. It also
-confirms the word list is intact, that `Math.random` appears nowhere, that no
-network call exists outside the self-test, and that the page is one file with
-nothing to fetch. The count is printed on the last line and asserted by the
-build tests, so it cannot go stale here.
+recomputes the source digest from `VERSION`, `src/index.html`, and every script
+and stylesheet in build order, so a change to the markup cannot leave the digest
+unchanged. It confirms the word list is intact, that `Math.random` appears
+nowhere, that no network call exists outside the self-test, and that the page is
+one file with nothing to fetch. The count is printed on the last line and
+asserted by the build tests, so it cannot go stale here.
 
 For the file as a whole:
 
@@ -326,6 +338,7 @@ src/
   data/               the raw EFF wordlist, kept for provenance
 tools/
   build.mjs           inline everything, hash it, write dist/index.html
+  source-digest.mjs   the build inputs, and the hash that covers all of them
   verify.mjs          audit dist/index.html from scratch
   make-wordlist.mjs   regenerate src/lib/wordlist.js from src/data
 test/
@@ -450,6 +463,10 @@ script. `node --test` loads them by lending them a `window`.
   says so instead of failing silently.
 - Clearing the clipboard overwrites the system clipboard, not any clipboard
   manager's history.
+- A custom symbol set may only contain characters that are not already in
+  another selected type. Repeating one is refused with an explanation rather
+  than silently merged, because merging would weaken both the distinct alphabet
+  and the one-of-each guarantee without changing the label.
 - Entropy is a property of the string, not of what you do with it. One password
   reused across twelve sites is one weak password.
 - The receipts are instrumentation, not a guarantee. A wrapper that failed to
@@ -461,11 +478,14 @@ script. `node --test` loads them by lending them a `window`.
 
 ### Which browsers this has actually been run in
 
-Checked on 14 November 2026 against `dist/index.html` with SHA-256
+The current `dist/index.html` has SHA-256
+`3226b9e668f855ef5f9c0510c6bf1184ba9fd0e4e119130325730e2d96bfb802`. The table
+below was measured on 14 November 2026 against the build before the security
+remediation, SHA-256
 `95b9af2b576120726272ae877c3f3dd3c42e58102ea3cd84260cf30dd8c7fde8`, from **both**
-`file://` and `http://localhost:8080`. Every cell below was measured in all six
-engine-and-origin combinations and the two origins never disagreed on a cell in
-the table:
+`file://` and `http://127.0.0.1:8080`; it has not been re-run against the current
+artifact. Every cell below was measured in all six engine-and-origin combinations
+and the two origins never disagreed on a cell in the table:
 
 | | Chromium 156.0.8078.4 | Firefox 157.0 | WebKit 27.2 |
 | --- | --- | --- | --- |
@@ -546,7 +566,7 @@ working counter read 0 in two of three engines before this was pinned down.
 no clipboard permission granted, `navigator.clipboard.writeText` is refused
 (`NotAllowedError`), so **Copy** falls back to `document.execCommand`, both are
 counted, and four presses read **8** instead of 4. That is the number measured
-this round. Over `http://localhost:8080` in Chromium, with `clipboard-read` and
+this round. Over `http://127.0.0.1:8080` in Chromium, with `clipboard-read` and
 `clipboard-write` granted to the context, the same four presses read **4**.
 Firefox and WebKit do not implement those permission names in Playwright, so they
 ran without a grant and still read **4** on the click gesture. A Chromium user

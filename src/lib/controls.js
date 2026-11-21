@@ -77,7 +77,17 @@
     var opts = options || {};
 
     if (mode === 'password') {
-      var built = PG.generators.buildAlphabet(opts);
+      var built;
+      try {
+        built = PG.generators.buildAlphabet(opts);
+      } catch (err) {
+        // A custom symbol set that repeats another selected type is refused by
+        // the generator, and that explanation belongs under the plate. Until the
+        // override is valid there is no alphabet to derive a ceiling from, so
+        // leave the slider alone rather than throwing out of an input handler.
+        if (err && err.userFacing) return null;
+        throw err;
+      }
       return {
         range: 'length',
         number: 'length-number',
@@ -110,6 +120,27 @@
     var value = parseInt(current, 10);
     if (!Number.isFinite(value)) return null;
     return value > ceiling ? ceiling : null;
+  }
+
+  /**
+   * The value both length controls should hold after a ceiling change.
+   *
+   * A range input silently clamps its own value when its max shrinks, so by the
+   * time the caller reads `range.value` it can already be in range while the
+   * number box still shows the pre-clamp length. That is why this always returns
+   * both values: the caller writes only the side that differs, and the box is
+   * corrected without queueing an extra input event when both already agree.
+   *
+   * `numberValue` is accepted to make the pair explicit at the call site; the
+   * range is the source of truth, because linkRange() reads it and the box is
+   * only its mirror. An unreadable range falls back to the widest value the
+   * control may now hold, never to the stale box.
+   */
+  function syncCeiling(rangeValue, numberValue, max, min) {
+    var range = parseInt(rangeValue, 10);
+    if (!Number.isFinite(range)) range = max;
+    var applied = Math.max(min, Math.min(max, range));
+    return { range: String(applied), number: String(applied) };
   }
 
   /**
@@ -296,9 +327,11 @@
       parts.push('alphabet of ' + result.spec.alphabetSize);
     }
 
-    // Only a password has per-class guarantees, and only worth saying when
-    // there is more than one class to guarantee.
-    if (result.kind === 'password' && classes && classes.length > 1) {
+    // Only a password has per-class guarantees, and only worth saying when the
+    // sampler actually applied the rule and there is more than one class to
+    // guarantee. Reading it from spec.requireEach matters when the draw happens
+    // to contain every class anyway: "probable" is not "guaranteed".
+    if (result.kind === 'password' && result.spec.requireEach && classes && classes.length > 1) {
       parts.push('one of each type');
     }
     if (result.spec.distinct) parts.push('no repeats');
@@ -352,6 +385,7 @@
     modeState: modeState,
     lengthCeiling: lengthCeiling,
     clampToCeiling: clampToCeiling,
+    syncCeiling: syncCeiling,
     relaxedCeilings: relaxedCeilings,
     presetFor: presetFor,
     typedLength: typedLength,

@@ -46,12 +46,11 @@ npm run check          # build + test + verify
 There is one design, and one stylesheet: `src/styles.css`. It opens in two halves
 &mdash; a structural layer that keeps the page working whatever it looks like, and
 the drawing itself &mdash; and the order of the two is load-bearing. The page is a
-window: a title bar with three shapes, a prompt line reading `you@machine$
-passgen`, the secret as a large monospace plate, and a receipt strip that reports
-`0 network calls`. The drawing is Memphis, softened &mdash; heavy keylines, blocks
-of desaturated 1980s colour, and hard offset shadows instead of blurred ones.
-Futura for the chrome and monospace for anything you have to check character by
-character.
+window: a title bar with three shapes, the secret as a large monospace plate, and
+a receipt strip that reports `0 network calls`. The drawing is Memphis, softened
+&mdash; heavy keylines, blocks of desaturated 1980s colour, and hard offset
+shadows instead of blurred ones. Futura for the chrome and monospace for anything
+you have to check character by character.
 
 Requires **Node 22+** for the tooling. The page itself needs nothing but a
 browser.

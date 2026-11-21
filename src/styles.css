@@ -668,29 +668,6 @@ code {
   border-radius: 50%;
 }
 
-/*
- * THE PROMPT LINE. Kept from the previous design and kept in mono, because it is
- * quoting a machine rather than speaking in the page's voice. It wraps rather
- * than scrolling, because a command the user cannot read is not a command.
- */
-.term-prompt {
-  margin-top: 14px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--ink-mute);
-  overflow-wrap: anywhere;
-}
-
-.term-user {
-  color: var(--ink-soft);
-  font-weight: 700;
-}
-
-.term-path {
-  color: var(--ink);
-}
-
 /* ------------------------------------------------------------------ layout */
 
 /* The deck is the body of the window: paper, not a card laid on paper. */
